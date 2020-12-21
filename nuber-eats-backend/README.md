@@ -1,73 +1,66 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
-</p>
+# nuber-eats-clone-nomadcoder
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## #0 introduction
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+### gitignore 익스텐션 이용
 
-## Description
+- extenstion 가서 다운로드
+- 톱니 누르고 command palete
+- '>' gitignore 클릭
+- node 클릭하면 node 관련 gitignore 자동 생성
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## #1 GRAPHQL API
 
-## Installation
+### nestjs graphql 설치
 
-```bash
-$ npm install
+```
+$ npm i @nestjs/graphql graphql-tools graphql apollo-server-express
 ```
 
-## Running the app
+### Code First 로 graphql 연결 예제
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```
+GraphQLModule.forRoot({
+  autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
+  // true 로 하면 그냥 메모리에서 동작
+}),
 ```
 
-## Test
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+```
+// src/app.module.ts
+imports: [
+    GraphQLModule.forRoot({
+      autoSchemaFile: true, // code First
+      // join(process.cwd(), 'src/schema.gql') 로하면 파일생성
+    }),
+    RestaurantsModule,
+  ],
 ```
 
-## Support
+```
+// src/restaurants/restaurant.module.ts
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+import { Module } from '@nestjs/common';
+import { RestaurantResolver } from './restaurants.resolver';
 
-## Stay in touch
+@Module({
+  providers: [RestaurantResolver],
+})
+export class RestaurantsModule {}
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```
 
-## License
+```
+// src/restaurants/restaurant.resolver.ts
+import { Resolver, Query } from '@nestjs/graphql';
 
-Nest is [MIT licensed](LICENSE).
+@Resolver()
+export class RestaurantResolver {
+  @Query((returns) => Boolean)
+  // 타입을 반환하는 함수가 인자가 되야한다
+  // returns 는 그냥 potato
+  isPizzaGood() {
+    return true;
+  }
+}
+```
