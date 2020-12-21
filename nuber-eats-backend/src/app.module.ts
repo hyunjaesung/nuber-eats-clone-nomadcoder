@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
-import { join } from 'path';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
+import * as Joi from 'joi'; // * 는 있는거 모두 import 하는거라 export 모듈 안해도 가지고온다
 import { RestaurantsModule } from './restaurants/restaurants.module';
 @Module({
   // 그래프 QL 설정
@@ -21,6 +23,31 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
     GraphQLModule.forRoot({
       autoSchemaFile: true, // code First
       // join(process.cwd(), 'src/schema.gql') 로하면 파일생성
+    }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: process.env.NODE_ENV === 'dev' ? '.env.dev' : '.env.test',
+      ignoreEnvFile: process.env.NODE_ENV === 'prod',
+      validationSchema: Joi.object({
+        // env 값 검증
+        NODE_ENV: Joi.string().valid('dev', 'prod'),
+        // NODE_ENV 유효성 검사해서 더높은 보안 제공
+        DB_HOST: Joi.string(),
+        DB_PORT: Joi.string(),
+        DB_USERNAME: Joi.string(),
+        DB_PASSWORD: Joi.string(),
+        DB_DATABASE: Joi.string(),
+      }),
+    }),
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env.DB_HOST,
+      port: +process.env.DB_PORT, // postgres 앱에서 서버확인가능
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD, // 로컬호스트에서는 안써도된다
+      database: process.env.DB_DATABASE,
+      synchronize: true, // 어플리케이션 상태로 DB migration
+      logging: true,
     }),
     RestaurantsModule,
   ],
