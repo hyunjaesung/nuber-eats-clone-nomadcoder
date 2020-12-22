@@ -392,18 +392,48 @@ https://typeorm.io/#/entities
   }
   ```
 
+- update 메서드 이용
+
+  - id와 업데이트 원하는 object
+
+  ```
+  // restaurant.service
+  updateRestaurant({ id, data }: UpdateRestaurantDto) {
+    this.restaurants.update(id, { ...data });
+  }
+
+  // restaurant.resolver
+  @Mutation((_) => Boolean)
+  async updateRestaurant(
+    @Args('URInput') updateRestaurantDto: UpdateRestaurantDto,
+  ) {
+    try {
+      await this.restaurantService.updateRestaurant(updateRestaurantDto);
+    } catch (e) {
+      console.warn(e);
+      return false;
+    }
+  }
+
+  ```
+
 ### Mapped Types
 
 https://docs.nestjs.com/graphql/mapped-types#mapped-types
 
 - Dto에 없고 Entity에만 있으면 경고도 없고 아무도 모르게 에러가 난다 이를 예방하려면 계속 동기화가 되어 있어야 하는데 Entity가 Dto도 자동 수행하도록 하면 된다. Entity가 DB table, graphql type 뿐만 아니라 dto 모두 가능하도록 수정
+
 - Mapped Types은 base type을 기반으로 여러 type을 만들어준다
+
   - Partial : required가 아닌 방식으로 전체로 생성
   - Pick : 특정 타입만 가져다가 생성
   - Omit : 몇몇만 제외하고 만든다
   - Intersection : 합쳐서 생성
+
 - 중요한 점은 이것들은 inputType으로 동작 되므로 다른 티입 아닌 inputType써야된다
+
 - OmitType
+
   ```
   @InputType() // MappedType에서는 InputType
   // @ArgsType()
@@ -419,3 +449,43 @@ https://docs.nestjs.com/graphql/mapped-types#mapped-types
     // @InputType({ isAbstract: true })
   }
   ```
+
+- PartialType
+
+  ```
+  @InputType()
+  class UpdateRestaurantInputType extends PartialType(
+    CreateRestaurantDto,
+  ) {}
+  // Restaurant로 안하고 CreateRestaurantDto로하는 이유는 id가 꼭필요하기 때문
+  // Restaurant로 하면 id가 optional 이된다
+  // id는 따로 처리해서 필수로 가져오도록 작업
+
+  @InputType()
+  export class UpdateRestaurantDto {
+    @Field((type) => Number)
+    id: number;
+
+    @Field((type) => UpdateRestaurantInputType)
+    data: UpdateRestaurantInputType;
+  }
+  // id 있는거랑 없는거랑 통합
+  ```
+
+### 그외 범용 entity 설정
+
+- class-validator 설정으로 entity 도 검증가능하다
+- DTO 해당항목 not required 로 하고싶을때
+  ```
+  @Field((_) => Boolean, { defaultValue: true })
+  // 그래프QL 스키마를 위해서 기본값 설정
+  // DTO에 자동으로 true라고 add해줌
+  // nullable:true 로 하면 아예 값없이 전달
+  @Column({ default: true })
+  // DB를 위해서 기본값 설정
+  @IsOptional()
+  // class-validator 를 위한 옵셔널 설정, 있거나 말거나
+  @IsBoolean()
+  isVegan?: Boolean;
+  ```
+  - 3번씩 테스트 해봐야 한다
