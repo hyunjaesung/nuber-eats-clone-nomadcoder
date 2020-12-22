@@ -1,6 +1,9 @@
-import { ObjectType, Field } from '@nestjs/graphql';
+import { ObjectType, Field, InputType } from '@nestjs/graphql';
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { IsString } from 'class-validator';
 
+@InputType({ isAbstract: true })
+// 스키마에는 추가안하고 타입 하나 더쓰고 싶을때
 @ObjectType() // Object Type 리턴 만들어줌 Resolver로 연결
 @Entity()
 export class Restaurant {

@@ -22,16 +22,21 @@ export class RestaurantResolver {
   //   }
   // }
   @Mutation((returns) => Boolean)
-  createRestaurant(
+  async createRestaurant(
     // @Args('name') name: string,
     // @Args('isVegan') isVegan: boolean,
     // @Args('address') address: string,
     // @Args('ownerName') ownerName: string,
     // 아래와 같이 따로 DTO 선언해서 축소가능
-    @Args() createRestaurantDto: CreateRestaurantDto,
-  ) {
-    console.log(createRestaurantDto);
-    return true;
+    @Args('CRInput') createRestaurantDto: CreateRestaurantDto,
+  ): Promise<boolean> {
+    try {
+      await this.restaurantService.createRestaurant(createRestaurantDto);
+      return true;
+    } catch (e) {
+      console.warn(e);
+      return false;
+    }
   }
   // graph ql
   // mutation{
