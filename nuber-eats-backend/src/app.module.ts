@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import * as Joi from 'joi'; // * 는 있는거 모두 import 하는거라 export 모듈 안해도 가지고온다
 import { RestaurantsModule } from './restaurants/restaurants.module';
+import { Restaurant } from './restaurants/entities/restaurant.entity';
 @Module({
   // 그래프 QL 설정
   // https://docs.nestjs.com/graphql/quick-start
@@ -46,8 +47,9 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD, // 로컬호스트에서는 안써도된다
       database: process.env.DB_DATABASE,
-      synchronize: true, // 어플리케이션 상태로 DB migration
-      logging: true,
+      synchronize: process.env.NODE_ENV !== 'prod', // 어플리케이션 상태로 DB migration
+      logging: process.env.NODE_ENV !== 'prod',
+      entities: [Restaurant],
     }),
     RestaurantsModule,
   ],

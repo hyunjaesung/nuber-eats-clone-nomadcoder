@@ -252,3 +252,107 @@ app.useGlobalPipes(new ValidationPipe());
       }),
     }),
     ```
+
+## #3 TYPEORM AND NEST
+
+### entities
+
+https://typeorm.io/#/entities
+
+- Entity is a class that maps to a database table
+
+- decorator
+
+  - Entity : typeOrm이 DB에 이걸 저장할 수 있게한다
+
+- 설정
+
+  - 기존 GraphQL의 ObjectType 설정한 곳에 같이 설정할 수 있다
+
+  ```
+  @ObjectType() // Object Type 리턴 만들어줌 Resolver로 연결
+  @Entity()
+  export class Restaurant {
+    @PrimaryGeneratedColumn()
+    @Field((_) => Number)
+    id: number;
+
+    @Field((_) => String)
+    @Column()
+    name: string;
+    @Field((_) => Boolean)
+    @Column()
+    isVegan?: Boolean;
+    @Field((_) => String)
+    @Column()
+    address: string;
+    @Field((_) => String)
+    @Column()
+    ownerName: string;
+  }
+  ```
+
+  - DB 가보면 Entity에 들어가지 않았는데 TypeORM에 따로 어디잇는지 알려줘야한다
+    ```
+    TypeOrmModule.forRoot({
+      ...
+    entities: [Restaurant],
+    }),
+    ```
+    - 실행하면 SQL문 잔뜩 실행되는데 이는 synchronize true로 해놔서 entity 자동으로 찾고 migration이 자동으로 된다
+      ```
+      // 환경따라 추가 설정
+      // 배포 상태에서는 실제 데이터라서 따로 작업하고 싶을수 있다
+      synchronize: process.env.NODE_ENV !== 'prod'
+      ```
+
+### 서비스 에서 DB 정보 읽기 쓰기
+
+- Data Mapper vs Active Record
+  https://typeorm.io/#/active-record-data-mapper
+- Data Mapper 방식
+
+  - Repository 사용
+    - Repository가 제공하는 모듈들을 이용 가능
+    - 어느 환경이나 접근이 가능해서 실제 구현 서비스, 테스팅 환경 모두에서 접근이 가능하다는 장점
+
+- 설정
+
+  - Repository를 import
+
+    ```
+    // restaurant.module
+    @Module({
+      imports: [TypeOrmModule.forFeature([Restaurant])],
+      // forFeature 는 특정 feature를 import 할수있도록 한다
+      // 1. TypeOrmModule 을 써서 Restaurant Repository를 모듈에 import 하면 RestaurantResolver에서 Repository 이용가능
+      providers: [RestaurantResolver, RestaurantService],
+      // providers에 RestaurantService 넣어야 다른 class로 inject 가능하다
+    })
+    // 2. RestaurantService에서 Repository 를 쓰기 위해서는 RestaurantResolver에 RestaurantService 주입하고 Repository 주입해줘야 된다
+
+    // restaurant.resolver
+    export class RestaurantResolver {
+      constructor(private readonly restaurantService: RestaurantService) {}
+      ...
+      restaurants(): Promise<Restaurant[]> {
+        return this.restaurantService.getAll();
+    }
+    ...
+
+    // restaurant.service
+    @Injectable()
+    export class RestaurantService {
+      constructor(
+        @InjectRepository(Restaurant)
+        private readonly restaurant: Repository<Restaurant>,
+      ) {}
+      // RestaurantResolver부터 Repository 주입 요청
+      // typeORM 문서에 나오는 getRepository 메서드를 데코레이터가 대신 해준다
+
+      getAll(): Promise<Restaurant[]> {
+        return this.restaurant.find();
+        // Repository 이용하면 DB 관련 각종 메서드 이용가능!
+      }
+    }
+    ```
