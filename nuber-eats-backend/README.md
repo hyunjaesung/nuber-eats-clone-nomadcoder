@@ -562,6 +562,9 @@ export class User extends CoreEntity {
 
 - 설정
   ```
+  // user.entity
+  export class User extends CoreEntity {
+  ...
   @BeforeInsert()
   async hashPassword(): Promise<void> {
     try {
