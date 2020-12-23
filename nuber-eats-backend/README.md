@@ -548,3 +548,29 @@ export class User extends CoreEntity {
     role: UserRole;
 }
 ```
+
+### 비밀번호 해싱
+
+- TypeOrm의 Listener 이용
+
+  - https://typeorm.io/#/listeners-and-subscribers
+  - @BeforeInsert 이용 하면 생성 다 끝내고 DB에 entity insert 되기 직전에 저걸 불러서 처리가능
+
+- bcrypt npm 모듈 이용
+
+  - npm i bcrypt @types/bcrypt
+
+- 설정
+  ```
+  @BeforeInsert()
+  async hashPassword(): Promise<void> {
+    try {
+      console.log(this.password);
+      this.password = await bcrypt.hash(this.password, 10);
+      console.log(this.password);
+    } catch (e) {
+      console.warn(e);
+      throw new InternalServerErrorException();
+    }
+  }
+  ```
