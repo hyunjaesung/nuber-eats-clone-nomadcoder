@@ -5,11 +5,13 @@ import { Injectable } from '@nestjs/common';
 import { CreateAccountInput } from './dto/create-acount.dto';
 import { Mutation, Args } from '@nestjs/graphql';
 import { LoginOutput, LoginInput } from './dto/login.dto';
-
+import * as jwt from 'jsonwebtoken';
+import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    private readonly config: ConfigService, // 설정값 쓰기위해 ConfigService inject
   ) {}
 
   async createAccount({
@@ -56,10 +58,12 @@ export class UsersService {
           error: '틀린 비밀번호',
         };
       }
-
+      // 토큰 생성
+      const token = jwt.sign({ id: user.id }, this.config.get('SECRET_KEY'));
+      // this.config로 env값 가져온다
       return {
         ok: true,
-        token: '14324134',
+        token,
       };
     } catch (error) {
       return { error, ok: false };

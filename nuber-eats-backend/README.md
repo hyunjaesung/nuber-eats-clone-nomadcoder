@@ -577,3 +577,86 @@ export class User extends CoreEntity {
     }
   }
   ```
+
+### 사용자 정의 모듈로 토큰 만들기
+
+- jsonwebtoken 모듈 사용
+  - https://www.npmjs.com/package/jsonwebtoken
+  - npm i jsonwebtoken
+  - npm i @types/jsonwebtoken
+- 설정
+
+  - privateKey 설정
+
+    ```
+    var token = jwt.sign({ foo: 'bar' }, privateKey, { algorithm: 'RS256'});
+    ```
+
+    - 유저가 임의로 Token 조작했는지 알아보기위해서
+
+    ```
+    // .env.dev
+    ...
+    SECRET_KEY=랜덤랜덤
+
+    // app.module
+    ConfigModule.forRoot({
+      ...
+      validationSchema: Joi.object({
+        // env 값 검증
+        NODE_ENV: Joi.string().valid('dev', 'prod'),
+        // NODE_ENV 유효성 검사해서 더높은 보안 제공
+        DB_HOST: Joi.string(),
+        DB_PORT: Joi.string(),
+        DB_USERNAME: Joi.string(),
+        DB_PASSWORD: Joi.string(),
+        DB_DATABASE: Joi.string(),
+        SECRET_KEY: Joi.string(), // 추가
+      }),
+    }),
+
+    // users.module
+    imports: [ ConfigService],
+    // app.module에 설정한 환경값 가져오기위해 ConfigService 이용
+
+    // users. service
+    export class UsersService {
+      constructor(
+        ...
+        private readonly config: ConfigService,
+        // 설정값 쓰기위해 ConfigService inject
+      ) {}
+      // 설정하고 요청하면 주는게 nestJS의 컨셉
+
+      async login({
+    email,
+    password,
+    }: LoginInput): Promise<{ ok: boolean; error?: string; token?: string }> {
+    ...
+      // 토큰 생성
+      const token = jwt.sign({ id: user.id }, this.config.get('SECRET_KEY'));
+      // 누구나 decode 가능하므로 중요 데이터는 넣으면 안된다
+
+      return {
+        ok: true,
+        token: '14324134',
+      };
+    } catch (error) {
+      return { error, ok: false };
+    }
+    }
+    }
+    // 위에서 볼수 있는 핵심 nestJS 컨셉은 모듈에서 설정하고 서비스에 주입 하는 컨셉
+    ```
+
+- jwt 모듈 만들기
+  ```
+  nest g mo jwt
+  ```
+  - nestJS 모듈은 두 종류가 종류함
+    - static module
+      - 설정이 따로 안되어있는 일반적으로 만들어서 쓰는 모듈
+    - dynamic module
+      - 설정이 따로 적용되어있는 모듈
+      - ConfigModule GraphQLModule 같은 것
+      - dynamic module은 중간과정이고 결국에는 static module이 된다

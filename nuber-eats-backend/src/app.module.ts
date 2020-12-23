@@ -6,6 +6,8 @@ import * as Joi from 'joi'; // * 는 있는거 모두 import 하는거라 export
 import { UsersModule } from './users/users.module';
 import { CommonModule } from './common/common.module';
 import { User } from './users/entities/user.entity';
+import { JwtModule } from './jwt/jwt.module';
+
 @Module({
   // 그래프 QL 설정
   // https://docs.nestjs.com/graphql/quick-start
@@ -39,6 +41,7 @@ import { User } from './users/entities/user.entity';
         DB_USERNAME: Joi.string(),
         DB_PASSWORD: Joi.string(),
         DB_DATABASE: Joi.string(),
+        SECRET_KEY: Joi.string(),
       }),
     }),
     TypeOrmModule.forRoot({
@@ -54,6 +57,7 @@ import { User } from './users/entities/user.entity';
     }),
     UsersModule,
     CommonModule,
+    JwtModule,
   ],
   controllers: [],
   providers: [],
