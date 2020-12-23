@@ -274,6 +274,7 @@ https://typeorm.io/#/entities
   @Entity()
   export class Restaurant {
     @PrimaryGeneratedColumn()
+    // @PrimaryGeneratedColumn() creates a primary column which value will be automatically generated with an auto-increment value.
     @Field((_) => Number)
     id: number;
 
@@ -489,3 +490,61 @@ https://docs.nestjs.com/graphql/mapped-types#mapped-types
   isVegan?: Boolean;
   ```
   - 3번씩 테스트 해봐야 한다
+
+### 참고
+
+- 클래스 타입선언 : https://www.sitepen.com/blog/advanced-typescript-concepts-classes-and-types
+
+## #4 User Module 작업
+
+### 세팅 순서
+
+- nest g mo users
+- entity, graphql 쿼리
+  - entity 생성
+  - entity app.module에 연결
+- graph ql root 쿼리 스키마 연결
+  - resolver 생성 service 생성
+  - users.module에 providers 연결
+- TypeOrm repository 연결
+  - users.module에 entity 연결한 TypeOrm 모듈 import 연결해서 repository 쓰게 작업
+  - resolver, service에 순차적으로 repository 주입
+- entity mapType 확장 dto
+  - entity map 작업
+  - 후에 서비스 작업하면서 필요한 dto extends entity로 생성
+
+### Entity 자동 날짜 생성
+
+https://typeorm.io/#/entities/special-columns
+
+```
+@CreateDateColumn()
+  createdAt:Date;
+
+  @UpdateDateColumn()
+  updatedAt:Date;
+```
+
+### Mapped Entity에 Enum 써서 속성 제한하기
+
+```
+enum UserRole {
+  Client,
+  Owner,
+  Delivery,
+}
+
+registerEnumType(UserRole, {
+  name: 'UserRole',
+});
+
+export class User extends CoreEntity {
+  ...
+  @Field((type) => UserRole)
+    @Column({
+      type: 'enum',
+      enum: UserRole,
+    })
+    role: UserRole;
+}
+```
