@@ -9,6 +9,27 @@
 - '>' gitignore 클릭
 - node 클릭하면 node 관련 gitignore 자동 생성
 
+### nestJS의 컨셉
+
+- 의존성 주입
+  - https://poiemaweb.com/angular-service
+  - 의존성 주입은 의존 관계를 긴밀한 결합(Tight Coupling)에서 느슨한 결합(Loose Coupling)으로 의존 관계를 전환하기 위해 구성 요소 간의 의존 관계를 코드 내부가 아닌 외부의 설정 등을 통해 정의하는 디자인 패턴 중의 하나로서 구성 요소 간 결합도를 낮추고 재사용성을 높인다.
+  - 프레임워크에게 의존성 인스턴스를 요구하고 프레임워크가 생성한 인스턴스를 전달받아 사용하는 방식
+- Providers
+
+  - https://docs.nestjs.com/providers
+  - 의존성 주입을 할수 있다
+    - 다른 것들과 많은 관계를 가질 수 있다
+    - 런타임 중에 인스턴스들이 엮여 나감
+  - @Injectable() 는 Nest Provider임을 보여주는 데코레이터
+
+- 인스턴스들은 죄다 형성후 변화가 공유가되는 싱글톤 형태다
+
+- Module
+  - providers : 이 모듈 안에서 공유되고 쓰여질 의존성 주입될 인스턴스
+  - export : 공유 되는 인스턴스 중에 밖으로 나갈것
+  - import : 이 모듈에서 쓰일 provider를 내보내는 모듈 리스트
+
 ## #1 GRAPHQL API
 
 ### nestjs graphql 설치
@@ -578,9 +599,9 @@ export class User extends CoreEntity {
   }
   ```
 
-### 사용자 정의 모듈로 토큰 만들기
+### 사용자 정의 모듈로 JWT기능 만들기
 
-- jsonwebtoken 모듈 사용
+- json web token 모듈 사용 한 방법
   - https://www.npmjs.com/package/jsonwebtoken
   - npm i jsonwebtoken
   - npm i @types/jsonwebtoken
@@ -615,24 +636,21 @@ export class User extends CoreEntity {
       }),
     }),
 
-    // users.module
-    imports: [ ConfigService],
-    // app.module에 설정한 환경값 가져오기위해 ConfigService 이용
-
     // users. service
     export class UsersService {
       constructor(
         ...
         private readonly config: ConfigService,
         // 설정값 쓰기위해 ConfigService inject
+        // 글로벌 설정해놔서 따로 import 없이 바로 사용 가능
       ) {}
       // 설정하고 요청하면 주는게 nestJS의 컨셉
 
       async login({
-    email,
-    password,
-    }: LoginInput): Promise<{ ok: boolean; error?: string; token?: string }> {
-    ...
+        email,
+        password,
+        }: LoginInput): Promise<{ ok: boolean; error?: string; token?: string }> {
+        ...
       // 토큰 생성
       const token = jwt.sign({ id: user.id }, this.config.get('SECRET_KEY'));
       // 누구나 decode 가능하므로 중요 데이터는 넣으면 안된다
@@ -649,10 +667,12 @@ export class User extends CoreEntity {
     // 위에서 볼수 있는 핵심 nestJS 컨셉은 모듈에서 설정하고 서비스에 주입 하는 컨셉
     ```
 
-- jwt 모듈 만들기
+- jwt 동적 모듈을 만들어서 쓰는 방법
+
   ```
   nest g mo jwt
   ```
+
   - nestJS 모듈은 두 종류가 종류함
     - static module
       - 설정이 따로 안되어있는 일반적으로 만들어서 쓰는 모듈
@@ -660,3 +680,116 @@ export class User extends CoreEntity {
       - 설정이 따로 적용되어있는 모듈
       - ConfigModule GraphQLModule 같은 것
       - dynamic module은 중간과정이고 결국에는 static module이 된다
+  - JWT 동적 모듈 생성
+    ```
+      nest g s jwt
+    // jwt.module
+    @Module({})
+    export class JwtModule {
+      static forRoot(): DynamicModule {
+        return {
+          module: JwtModule,
+          exports: [JwtService],
+          // JwtService를 Export해서 다른 모듈에서도 사용 할수 있게 함
+          providers: [JwtService],
+        };
+      }
+    }
+    // jwt.service
+    @Injectable()
+    export class JwtService {
+      hello() {
+        console.log('hello');
+      }
+    }
+    ```
+
+- Jwt 동적 모듈에서 export한 Service users모듈에서 써보기
+
+  ```
+  // app.module
+  JwtModule.forRoot(),
+  // forRoot() 써서 Service 자동 exports 된다
+
+  // users.module
+  import:[JwtService]
+  // 이렇게 import 요청만 하면 바로 쓸수 있다
+
+  // users.service
+  export class UsersService {
+    constructor(
+      ...
+      private readonly jwtService: JwtService,
+    ) {}
+    ...
+  }
+  // 문제는 에러가 난다
+  // global 모듈이 아니면 providers에도 넣어줘야 되기 때문
+  // import 하고 module providers에 등록해서 서비스 기능 이용 하는 컨셉
+  // 이게 싫으면  global 모듈로 기능하게 하면 굳이 import 안해도 된다
+
+  // jwt.module
+  @Global() // 이거 선언하면 바로 글로벌 된다
+  @Module({})
+  export class JwtModule {
+    static forRoot(): DynamicModule {
+      return {
+  ```
+
+- Jwt 모듈 옵션 기능
+
+  ```
+  // jwt.interface
+  export interface JwtModuleOptions {
+    privateKey: string;
+  }
+
+  // jwt.module
+  export class JwtModule {
+    static forRoot(options: JwtModuleOptions): DynamicModule {
+      return {
+        module: JwtModule,
+        exports: [JwtService],
+        // JwtService를 Export해서 다른 모듈에서도 provider 사용 할수 있게 함
+        providers: [
+          // {
+          //   provide: JwtService,
+          //   useClass: JwtService,
+          // }
+          // 그냥 JwtService 라고 쓰면 이 상태와 동일
+
+          // 아래와 같이 provider 생성 가능
+          {
+            provide: 'banana', // provider 이름
+            useValue: options, // 그 value
+            // useClass 쓰면 class inject가능
+          },
+        ],
+      };
+    }
+  }
+  // jwt.service
+  @Injectable()
+  export class JwtService {
+    constructor(
+      @Inject(CONFIG_OPTIONS) private readonly options: JwtModuleOptions, // 커스텀 provider 주입 // private readonly configService: ConfigService,
+    ) {}
+    // 이렇게 따로 값을 inject 가능
+    sign(payload: object): string {
+      return jwt.sign(payload, this.options.privateKey);
+      // return jwt.sign(payload, this.configService.get('PRIVATE_KEY'));
+      // 사실 옵션안하고 위에서 처럼 그냥 글로벌 모듈에 속한 provider인 ConfigService 주입해서 쓰면되긴한다
+    }
+  }
+
+
+  // app.module
+   JwtModule.forRoot({
+      privateKey: process.env.PRIVATE_KEY,
+    }),
+
+  // user.service
+
+  const token = this.jwtService.sign({ id: user.id });
+
+  ```

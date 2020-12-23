@@ -41,7 +41,7 @@ import { JwtModule } from './jwt/jwt.module';
         DB_USERNAME: Joi.string(),
         DB_PASSWORD: Joi.string(),
         DB_DATABASE: Joi.string(),
-        SECRET_KEY: Joi.string(),
+        PRIVATE_KEY: Joi.string(),
       }),
     }),
     TypeOrmModule.forRoot({
@@ -55,9 +55,11 @@ import { JwtModule } from './jwt/jwt.module';
       logging: process.env.NODE_ENV !== 'prod',
       entities: [User],
     }),
+    JwtModule.forRoot({
+      privateKey: process.env.PRIVATE_KEY,
+    }),
     UsersModule,
     CommonModule,
-    JwtModule,
   ],
   controllers: [],
   providers: [],

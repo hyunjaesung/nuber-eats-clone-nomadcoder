@@ -7,11 +7,12 @@ import { Mutation, Args } from '@nestjs/graphql';
 import { LoginOutput, LoginInput } from './dto/login.dto';
 import * as jwt from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from 'src/jwt/jwt.service';
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
-    private readonly config: ConfigService, // 설정값 쓰기위해 ConfigService inject
+    private readonly jwtService: JwtService,
   ) {}
 
   async createAccount({
@@ -59,7 +60,7 @@ export class UsersService {
         };
       }
       // 토큰 생성
-      const token = jwt.sign({ id: user.id }, this.config.get('SECRET_KEY'));
+      const token = this.jwtService.sign({ id: user.id });
       // this.config로 env값 가져온다
       return {
         ok: true,
