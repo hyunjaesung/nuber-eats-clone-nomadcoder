@@ -599,6 +599,12 @@ export class User extends CoreEntity {
   }
   ```
 
+### nest 제공기능으로 jwt 기능 만들기
+
+- nest/passport를 이용하면 더쉽다
+
+  - https://docs.nestjs.com/security/authentication#implementing-passport-strategies
+
 ### 사용자 정의 모듈로 JWT기능 만들기
 
 - json web token 모듈 사용 한 방법
@@ -792,4 +798,113 @@ export class User extends CoreEntity {
 
   const token = this.jwtService.sign({ id: user.id });
 
+  ```
+
+### JWT 인증 미들웨어
+
+- 사용자가 http 헤더에 토큰을 넣어서 요청하면 미들웨어가 express next처럼 인증 하고 처리해야한다
+
+  - https://docs.nestjs.com/middleware#middleware
+
+- 미들웨어 설정
+
+  ```
+  // jwt.middleware
+  import { NestMiddleware } from '@nestjs/common';
+  import { Request, Response, NextFunction } from 'express';
+
+  // export class JwtMiddleware implements NestMiddleware {
+  //   // implements 는 extends와 다르게 클래스가 interface 처럼 동작 해야한다
+  //   use(req: Request, res: Response, next: NextFunction) {
+  //     console.log(req.headers);
+  //     next();
+  //   }
+  // }
+
+  // nest 데코레이터를 사용안하면 이렇게 함수로 만들어도 된다
+  export function jwtMiddleware(req: Request, res: Response, next: NextFunction) {
+    console.log(req.headers);
+    next();
+  }
+  ```
+
+- 미들웨어 적용
+
+  ```
+  // 첫번째 방법 app.module 에 설정
+  export class AppModule implements NestModule {
+    // 루트모듈에 미들웨어 설치
+    // 미들웨어는 어떤 모듈이나 설치 가능
+    configure(consumer: MiddlewareConsumer) {
+      consumer.apply(jwtMiddleware).forRoutes({
+        path: '*',
+        method: RequestMethod.ALL,
+      });
+      // 특정 루트 특정 메서드 미들웨어 지정 가능
+      // consumer.apply(JwtMiddleware).exclude({
+      //   path: '/블라블라',
+      //   method: RequestMethod.ALL,
+      // });
+      // 제외도 가능
+    }
+  }
+
+  // 두번째 방법 main.ts에 설정, 함수만 등록가능
+  async function bootstrap() {
+    // 모든게 App module 로 합쳐진다
+    const app = await NestFactory.create(AppModule);
+    app.useGlobalPipes(new ValidationPipe());
+    app.use(jwtMiddleware);
+    await app.listen(3001);
+  }
+  bootstrap();
+  ```
+
+- 미들웨어 jwt 인증 기능 확장
+
+  - 중간에 http 헤더에서 토큰 받아서 해독해서 id로 DB에서 해당 유저 정보 꺼내오기
+
+  ```
+  // jwt.service
+  @Injectable()
+  export class JwtService {
+
+    ....
+    verify(token: string) {
+      return jwt.verify(token, this.options.privateKey);
+      // https://www.npmjs.com/package/jsonwebtoken
+      // Returns the payload decoded if the signature is valid and optional expiration, audience, or issuer are valid. If not, it will throw the error.
+    }
+  }
+  // users.service
+  @Injectable()
+  export class UsersService {
+    ...
+    async findById(id: number): Promise<User> {
+      return this.users.findOne({ id });
+    }
+  }
+
+  // jwt.middleware
+  @Injectable()
+  export class JwtMiddleware implements NestMiddleware {
+    // implements 는 extends와 다르게 클래스가 interface 처럼 동작 해야한다
+    constructor(
+      private readonly jwtService: JwtService, // 글로벌 모듈이라서 의존성 주입 바로된다
+      private readonly userService: UsersService, // user.module이 export 해야 쓸수 있음
+    ) {}
+    async use(req: Request, res: Response, next: NextFunction) {
+      if ('x-jwt' in req.headers) {
+        const token = req.headers['x-jwt'];
+        const decoded = this.jwtService.verify(token.toString());
+        if (typeof decoded === 'object' && decoded.hasOwnProperty('id')) {
+          try {
+            const user = await this.userService.findById(decoded['id']);
+            req['user'] = user;
+          } catch (error) {}
+        }
+      }
+      next();
+    }
+  }
   ```

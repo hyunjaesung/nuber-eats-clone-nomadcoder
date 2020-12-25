@@ -10,5 +10,6 @@ import { JwtService } from 'src/jwt/jwt.service';
   imports: [TypeOrmModule.forFeature([User])],
   // app.module에 설정한 환경값 가져오기위해 ConfigService 이용
   providers: [UsersResolver, UsersService],
+  exports: [UsersService],
 })
 export class UsersModule {}

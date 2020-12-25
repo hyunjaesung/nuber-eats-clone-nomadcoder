@@ -13,6 +13,10 @@ export class JwtService {
   sign(payload: object): string {
     return jwt.sign(payload, this.options.privateKey);
     // return jwt.sign(payload, this.configService.get('PRIVATE_KEY'));
-    // 사실 옵션안하고 위에서 처럼 그냥 글로벌 모듈에 속한 provider인 ConfigService 주입해서 쓰면되긴한다
+    // 사실 this.options에 따로 안넣고 위에서 처럼 그냥 글로벌 모듈에 속한 provider인 ConfigService 주입해서 쓰면되긴한다
+  }
+  verify(token: string) {
+    return jwt.verify(token, this.options.privateKey);
+    // Returns the payload decoded if the signature is valid and optional expiration, audience, or issuer are valid. If not, it will throw the error.
   }
 }

@@ -1,4 +1,10 @@
-import { Module } from '@nestjs/common';
+import {
+  Module,
+  NestModule,
+  MiddlewareConsumer,
+  RequestMapping,
+  RequestMethod,
+} from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
@@ -7,6 +13,7 @@ import { UsersModule } from './users/users.module';
 import { CommonModule } from './common/common.module';
 import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
+import { JwtMiddleware } from './jwt/jwt.middleware';
 
 @Module({
   // 그래프 QL 설정
@@ -64,4 +71,19 @@ import { JwtModule } from './jwt/jwt.module';
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  // 루트모듈에 미들웨어 설치
+  // 미들웨어는 어떤 모듈이나 설치 가능
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(JwtMiddleware).forRoutes({
+      path: '*',
+      method: RequestMethod.ALL,
+    });
+    // 특정 루트 특정 메서드 미들웨어 지정 가능
+    // consumer.apply(JwtMiddleware).exclude({
+    //   path: '/블라블라',
+    //   method: RequestMethod.ALL,
+    // });
+    // 제외도 가능
+  }
+}
