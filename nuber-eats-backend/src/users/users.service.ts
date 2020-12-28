@@ -5,8 +5,10 @@ import { Injectable } from '@nestjs/common';
 import { CreateAccountInput } from './dto/create-acount.dto';
 import { LoginInput } from './dto/login.dto';
 import { JwtService } from 'src/jwt/jwt.service';
-import { EditProfileInput } from './dto/edit-profile.dto';
+import { EditProfileInput, EditProfileOutput } from './dto/edit-profile.dto';
 import { EmailVerification } from './entities/emailVerification.entity';
+import { UserProfileInput, UserProfileOutput } from './dto/user-profile.dto';
+import { verifyEmailOutput, VerifyEmailInput } from './dto/veryfy-email.dto';
 @Injectable()
 export class UsersService {
   constructor(
@@ -42,7 +44,6 @@ export class UsersService {
           user,
         }),
       );
-
       return { ok: true };
     } catch (e) {
       return { ok: true, error: '계정을 생성할수 없습니다' };
@@ -85,33 +86,62 @@ export class UsersService {
       return { error, ok: false };
     }
   }
+  async userProfile({ userId }: UserProfileInput): Promise<UserProfileOutput> {
+    try {
+      const user = await this.users.findOne({ id: userId });
+      if (user) {
+        return {
+          ok: true,
+          user,
+        };
+      } else {
+        throw Error('유저를 찾을 수 없습니다');
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        error,
+      };
+    }
+  }
 
   async findById(id: number): Promise<User> {
-    return this.users.findOne({ id });
+    return await this.users.findOne({ id });
   }
 
   async editProfile(
     userId: number,
     { email, password }: EditProfileInput,
-  ): Promise<User> {
-    const user = await this.users.findOne(userId);
-    if (email) {
-      user.email = email;
-      user.verified = false;
-      await this.emailVerification.save(
-        this.emailVerification.create({ user }),
-      );
-      // user 생길때 emailVerification 도 같이 생성
+  ): Promise<EditProfileOutput> {
+    try {
+      const user = await this.users.findOne(userId);
+      if (email) {
+        user.email = email;
+        user.verified = false;
+        await this.emailVerification.save(
+          this.emailVerification.create({ user }),
+        );
+        // user 생길때 emailVerification 도 같이 생성
+      }
+      if (password) {
+        user.password = password;
+      }
+      this.users.save(user);
+      return {
+        ok: true,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error,
+      };
     }
-    if (password) {
-      user.password = password;
-    }
-    return this.users.save(user);
+
     // update 메서드는 단순히 DB 변경만 하기때문에 entity에서 @BeforeUpdate가 동작하지 않는다
     // save는 있으면 추가하고 없으면 update 한다 이때 entity를 통과한다
   }
 
-  async verifyEmail(code: string): Promise<boolean> {
+  async verifyEmail({ code }: VerifyEmailInput): Promise<verifyEmailOutput> {
     try {
       const verification = await this.emailVerification.findOne(
         { code },
@@ -124,11 +154,16 @@ export class UsersService {
         verification.user.verified = true;
         this.users.save(verification.user);
         // await this.users.update(verification.user.id, { verified: true });
-        return true;
+        return {
+          ok: true,
+        };
       }
       throw Error();
     } catch (error) {
-      return false;
+      return {
+        ok: false,
+        error,
+      };
     }
   }
 }
