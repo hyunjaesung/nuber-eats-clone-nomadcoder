@@ -15,6 +15,7 @@ import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
 import { JwtMiddleware } from './jwt/jwt.middleware';
 import { AuthModule } from './auth/auth.module';
+import { EmailVerification } from './users/entities/emailVerification.entity';
 
 @Module({
   // 그래프 QL 설정
@@ -62,7 +63,7 @@ import { AuthModule } from './auth/auth.module';
       database: process.env.DB_DATABASE,
       synchronize: process.env.NODE_ENV !== 'prod', // 어플리케이션 상태로 DB migration
       logging: process.env.NODE_ENV !== 'prod',
-      entities: [User],
+      entities: [User, EmailVerification],
     }),
     JwtModule.forRoot({
       privateKey: process.env.PRIVATE_KEY,

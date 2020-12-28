@@ -1042,3 +1042,42 @@ export class User extends CoreEntity {
     // save는 있으면 추가하고 없으면 update 한다 이때 entity를 통과한다
   }
   ```
+
+### Email Verification 모듈 만들기
+
+- 기본 제공 모듈 사용 하면 더 편하다
+- relations : https://typeorm.io/#/relations
+
+  - one to one : A <-> B 오직 서로 하나만 갖는다
+    - https://typeorm.io/#/one-to-one-relations
+
+  ```
+  // emailVerification.entity.ts
+  // 엔티티 생성하면 DB가보면 레포지토리 하나 더 생긴다!
+  @InputType({ isAbstract: true }) // DTO 작업 맨위에 있어야한다
+  @ObjectType()
+  @Entity()
+  export class EmailVerification extends CoreEntity {
+    // one to one 오직 하나의 유저, 오직 하나의 EmailVerification 서로 관계
+    @Column()
+    @Field((type) => String)
+    code: string;
+
+    // JoinColumn은 어디서 내가 접근 하고싶은지 에 따라서 넣는 Entity가 달라진다
+    // 여기에 넣으면 EmailVerification 부터 User로 관계 찾는다
+    @OneToOne((type) => User)
+    @JoinColumn()
+    user: User;
+  }
+
+  // user.entity.ts
+  @Column({ default: false })
+  @Field((type) => Boolean)
+  verified: boolean;
+  // 대응할 칼럼 추가
+
+  // app.module
+  // TypeOrm Module에 Entity 추가
+
+
+  ```
