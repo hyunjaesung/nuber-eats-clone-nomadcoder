@@ -1023,4 +1023,22 @@ export class User extends CoreEntity {
   async hashPassword(): Promise<void> {
     ...
   }
+
+  // BeforeUpdate() 를 해도 해쉬화가 안되는 문제 있다
+  // user.service
+  async editProfile(
+    userId: number,
+    { email, password }: EditProfileInput,
+  ): Promise<User> {
+    const user = await this.users.findOne(userId);
+    if (email) {
+      user.email = email;
+    }
+    if (password) {
+      user.password = password;
+    }
+    return this.users.save(user);
+    // update 메서드는 단순히 DB 변경만 하기때문에 entity에서 @BeforeUpdate가 동작하지 않는다
+    // save는 있으면 추가하고 없으면 update 한다 이때 entity를 통과한다
+  }
   ```

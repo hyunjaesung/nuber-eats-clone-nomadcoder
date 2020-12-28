@@ -76,8 +76,19 @@ export class UsersService {
     return this.users.findOne({ id });
   }
 
-  async editProfile(userId: number, editProfileInput: EditProfileInput) {
-    // {email, password} 방법 쓰면 값을 안넣으주면 undefined되는문제가 있다
-    return this.users.update({ id: userId }, { ...editProfileInput });
+  async editProfile(
+    userId: number,
+    { email, password }: EditProfileInput,
+  ): Promise<User> {
+    const user = await this.users.findOne(userId);
+    if (email) {
+      user.email = email;
+    }
+    if (password) {
+      user.password = password;
+    }
+    return this.users.save(user);
+    // update 메서드는 단순히 DB 변경만 하기때문에 entity에서 @BeforeUpdate가 동작하지 않는다
+    // save는 있으면 추가하고 없으면 update 한다 이때 entity를 통과한다
   }
 }
