@@ -1,4 +1,4 @@
-import { Entity, Column, BeforeInsert } from 'typeorm';
+import { Entity, Column, BeforeInsert, BeforeUpdate } from 'typeorm';
 import { CoreEntity } from 'src/common/entities/core.entity';
 import {
   ObjectType,
@@ -26,6 +26,7 @@ registerEnumType(UserRole, {
 @Entity()
 export class User extends CoreEntity {
   @BeforeInsert()
+  @BeforeUpdate() // 업데이트시 이거 추가해야 해당칼럼 해쉬화 된다!
   async hashPassword(): Promise<void> {
     try {
       this.password = await bcrypt.hash(this.password, 10);

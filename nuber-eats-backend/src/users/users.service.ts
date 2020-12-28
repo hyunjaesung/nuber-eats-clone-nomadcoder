@@ -8,6 +8,7 @@ import { LoginOutput, LoginInput } from './dto/login.dto';
 import * as jwt from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from 'src/jwt/jwt.service';
+import { EditProfileInput } from './dto/edit-profile.dto';
 @Injectable()
 export class UsersService {
   constructor(
@@ -73,5 +74,10 @@ export class UsersService {
 
   async findById(id: number): Promise<User> {
     return this.users.findOne({ id });
+  }
+
+  async editProfile(userId: number, editProfileInput: EditProfileInput) {
+    // {email, password} 방법 쓰면 값을 안넣으주면 undefined되는문제가 있다
+    return this.users.update({ id: userId }, { ...editProfileInput });
   }
 }

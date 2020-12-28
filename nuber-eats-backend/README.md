@@ -975,3 +975,52 @@ export class User extends CoreEntity {
       return authedUser;
     }
   ```
+
+### 유저 프로필
+
+- 프로필 업데이트
+
+  ```
+  // edit-profile dto
+  @ObjectType()
+  export class EditProfileOutput extends CoreOutput {}
+
+  @InputType()
+  export class EditProfileInput extends PartialType(
+    PickType(User, ['email', 'password']),
+  ) {}
+
+  //user.service
+  async editProfile(userId: number, editProfileInput: EditProfileInput) {
+    // {email, password} 방법 쓰면 값을 안넣으주면 undefined되는 문제가 있다
+    return this.users.update({ id: userId }, { ...editProfileInput });
+  }
+
+  //user.resolver
+  @UseGuards(AuthGuard)
+  @Mutation((returns) => EditProfileOutput)
+  async editProfile(
+    @AuthUser() authedUser: User,
+    @Args('input') editProfileInput: EditProfileInput,
+  ): Promise<EditProfileOutput> {
+    try {
+      await this.usersService.editProfile(authedUser.id, editProfileInput);
+      return {
+        ok: true,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error,
+      };
+    }
+  }
+
+
+  export class User extends CoreEntity {
+  @BeforeInsert()
+  @BeforeUpdate() // 업데이트시 이거 추가해야 해당칼럼 해쉬화 된다!
+  async hashPassword(): Promise<void> {
+    ...
+  }
+  ```
