@@ -1,11 +1,13 @@
 import { User } from './entities/user.entity';
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
 import { UsersService } from './users.service';
 import {
   CreateAccountOutput,
   CreateAccountInput,
 } from './dto/create-acount.dto';
 import { LoginInput, LoginOutput } from './dto/login.dto';
+import { UseGuards } from '@nestjs/common';
+import { AuthGuard } from 'src/auth/auth.guard';
 
 @Resolver((_) => User)
 export class UsersResolver {
@@ -47,5 +49,6 @@ export class UsersResolver {
   }
 
   @Query((returns) => User)
-  me() {}
+  @UseGuards(AuthGuard) // 가드 적용 false 리턴이면 해당 쿼리 request 중단
+  me(@Context() context) {}
 }

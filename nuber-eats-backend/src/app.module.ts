@@ -14,6 +14,7 @@ import { CommonModule } from './common/common.module';
 import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
 import { JwtMiddleware } from './jwt/jwt.middleware';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   // 그래프 QL 설정
@@ -34,6 +35,7 @@ import { JwtMiddleware } from './jwt/jwt.middleware';
     GraphQLModule.forRoot({
       autoSchemaFile: true, // code First
       // join(process.cwd(), 'src/schema.gql') 로하면 파일생성
+      context: ({ req }) => ({ user: req['user'] }),
     }),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -66,7 +68,8 @@ import { JwtMiddleware } from './jwt/jwt.middleware';
       privateKey: process.env.PRIVATE_KEY,
     }),
     UsersModule,
-    CommonModule,
+    // CommonModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],
@@ -76,8 +79,8 @@ export class AppModule implements NestModule {
   // 미들웨어는 어떤 모듈이나 설치 가능
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(JwtMiddleware).forRoutes({
-      path: '*',
-      method: RequestMethod.ALL,
+      path: '/graphql',
+      method: RequestMethod.POST,
     });
     // 특정 루트 특정 메서드 미들웨어 지정 가능
     // consumer.apply(JwtMiddleware).exclude({

@@ -901,10 +901,51 @@ export class User extends CoreEntity {
           try {
             const user = await this.userService.findById(decoded['id']);
             req['user'] = user;
+            // req 안에 새로운 걸 넣은 것
           } catch (error) {}
         }
       }
       next();
     }
   }
+  ```
+
+### Authentication
+
+- GraphQL Context
+  - 아폴로에 있는 context property에 request 마다 넣게되고 resolver 에서 공유가능
+- 설정
+
+  ```
+  // app.module.ts
+  GraphQLModule.forRoot({
+      ...
+      context: ({ req }) => ({ user: req['user'] }),
+    }),
+
+
+  // auth.guard.ts
+  @Injectable()
+  // Guard 를 이용하면 Endpoint 보호 가능
+  export class AuthGuard implements CanActivate {
+    // CanActivate 은 return true면
+    // request 계속 진행 시키고
+    // 아니면 request 중단 시킴
+
+    canActivate(context: ExecutionContext) {
+      const gqlContext = GqlExecutionContext.create(context).getContext();
+      // http 요청과 gql 형태 달라서 변형
+      const user = gqlContext['user'];
+      console.log(user);
+      if (!user) {
+        return false;
+      }
+      return true;
+    }
+  }
+
+  // user.resolver.ts
+  @Query((returns) => User)
+  @UseGuards(AuthGuard) // 가드 적용 false 리턴이면 해당 쿼리 request 중단
+  me(@Context() context) {}
   ```
