@@ -910,19 +910,22 @@ export class User extends CoreEntity {
   }
   ```
 
-### Authentication
+### 인증과 인가
 
 - GraphQL Context
   - 아폴로에 있는 context property에 request 마다 넣게되고 resolver 에서 공유가능
-- 설정
-
   ```
-  // app.module.ts
+   // app.module.ts
   GraphQLModule.forRoot({
       ...
       context: ({ req }) => ({ user: req['user'] }),
     }),
+  ```
+- Guard를 이용한 설정
 
+  - https://docs.nestjs.com/guards
+
+  ```
 
   // auth.guard.ts
   @Injectable()
@@ -948,4 +951,25 @@ export class User extends CoreEntity {
   @Query((returns) => User)
   @UseGuards(AuthGuard) // 가드 적용 false 리턴이면 해당 쿼리 request 중단
   me(@Context() context) {}
+  ```
+
+- 커스텀 데코레이터를 이용한 설정
+
+  ```
+  // 역할 따라 다르게 쿼리 데이터 전달 할수 있는 장점 있다
+  // auth-user.decorator.ts
+  export const AuthUser = createParamDecorator(
+    (data: unknown, context: ExecutionContext) => {
+      const gqlContext = GqlExecutionContext.create(context).getContext();
+      // http 요청과 gql 형태 달라서 변형
+      const user = gqlContext['user'];
+      return user;
+    },
+  );
+
+  @Query((returns) => User)
+    @UseGuards(AuthGuard) // 가드 적용 false 리턴이면 해당 쿼리 request 중단
+    me(@AuthUser() authedUser: User) {
+      return authedUser;
+    }
   ```

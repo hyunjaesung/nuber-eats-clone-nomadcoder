@@ -8,6 +8,7 @@ import {
 import { LoginInput, LoginOutput } from './dto/login.dto';
 import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { AuthUser } from 'src/auth/auth-user.decorator';
 
 @Resolver((_) => User)
 export class UsersResolver {
@@ -50,5 +51,7 @@ export class UsersResolver {
 
   @Query((returns) => User)
   @UseGuards(AuthGuard) // 가드 적용 false 리턴이면 해당 쿼리 request 중단
-  me(@Context() context) {}
+  me(@AuthUser() authedUser: User) {
+    return authedUser;
+  }
 }
