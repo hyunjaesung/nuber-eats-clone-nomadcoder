@@ -24,9 +24,12 @@ export class UsersService {
     // 새로운 유저 이메일 존재하는지 확인
     // 유저 생성 & 비밀번호 해싱
     try {
-      const exists = await this.users.findOne({
-        email,
-      });
+      const exists = await this.users.findOne(
+        {
+          email,
+        },
+        { select: ['id', 'password'] },
+      );
       if (exists) {
         // make error
         return { ok: false, error: '계정을 생성할수 없습니다' };
@@ -54,7 +57,10 @@ export class UsersService {
     // 비밀번호와 일치하는지 확인한다
     // JWT 만들어서 전달
     try {
-      const user = await this.users.findOne({ email });
+      const user = await this.users.findOne(
+        { email },
+        { select: ['id', 'password'] },
+      );
       if (!user) {
         return {
           ok: false,
@@ -106,17 +112,23 @@ export class UsersService {
   }
 
   async verifyEmail(code: string): Promise<boolean> {
-    const verification = await this.emailVerification.findOne(
-      { code },
-      // { loadRelationIds: true },
-      { relations: ['user'] },
-      // 위 둘 옵션 있어야지 relation 관련 컬럼 가지고 온다
-      // relation은 상당히 복잡한 작업이기 때문에 옵션으로 요청을 해야한다
-    );
-    if (verification) {
-      verification.user.verified = true;
-      this.users.save(verification.user);
+    try {
+      const verification = await this.emailVerification.findOne(
+        { code },
+        // { loadRelationIds: true },
+        { relations: ['user'] },
+        // 위 둘 옵션 있어야지 relation 관련 컬럼 가지고 온다
+        // relation은 상당히 복잡한 작업이기 때문에 옵션으로 요청을 해야한다
+      );
+      if (verification) {
+        verification.user.verified = true;
+        this.users.save(verification.user);
+        // await this.users.update(verification.user.id, { verified: true });
+        return true;
+      }
+      throw Error();
+    } catch (error) {
+      return false;
     }
-    return false;
   }
 }

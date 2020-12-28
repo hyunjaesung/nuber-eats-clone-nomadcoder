@@ -28,11 +28,14 @@ export class User extends CoreEntity {
   @BeforeInsert()
   @BeforeUpdate() // 업데이트시 이거 추가해야 해당칼럼 해쉬화 된다!
   async hashPassword(): Promise<void> {
-    try {
-      this.password = await bcrypt.hash(this.password, 10);
-    } catch (e) {
-      console.warn(e);
-      throw new InternalServerErrorException();
+    if (this.password) {
+      // password가 전달 될때 만 변경
+      try {
+        this.password = await bcrypt.hash(this.password, 10);
+      } catch (e) {
+        console.warn(e);
+        throw new InternalServerErrorException();
+      }
     }
   }
 
@@ -51,7 +54,8 @@ export class User extends CoreEntity {
   email: string;
 
   @Field((type) => String)
-  @Column()
+  @Column({ select: false })
+  // select false 하면 user 레포 소환시 password 안 담아 준다
   @IsString()
   password: string;
 

@@ -1038,10 +1038,54 @@ export class User extends CoreEntity {
       user.password = password;
     }
     return this.users.save(user);
+    // return this.users.update(userId, {...editProfileInput})
     // update 메서드는 단순히 DB 변경만 하기때문에 entity에서 @BeforeUpdate가 동작하지 않는다
     // save는 있으면 추가하고 없으면 update 한다 이때 entity를 통과한다
   }
   ```
+
+- 위 방법으로 그냥 save쓰면 sideEffect 발생한다
+
+  - 비밀번호가 계속 해싱되서 다른 비밀번호로 바뀐다
+
+  ```
+  // user.entity
+
+  @Field((type) => String)
+  @Column({ select: false })
+  // select false 하면 user 레포 소환시 password 안 담아 준다
+  @IsString()
+  password: string;
+
+  ...
+
+  @BeforeInsert()
+  @BeforeUpdate() // 업데이트시 이거 추가해야 해당칼럼 해쉬화 된다!
+  async hashPassword(): Promise<void> {
+    if (this.password) {
+      // password 가 안에 있을 경우만 업데이트
+      try {
+        this.password = await bcrypt.hash(this.password, 10);
+      } catch (e) {
+        console.warn(e);
+        throw new InternalServerErrorException();
+      }
+    }
+  }
+  // 비밀번호가 필요할때는
+  // user.service.ts
+
+  const exists = await this.users.findOne(
+        {
+          email,
+        },
+        { select: ['password'] },
+      );
+    // select로 가져오는 경우는 이렇게 명시적으로 가져와야되는데 여기서는 password만 가지고 오게된다
+    // 필요한 것 다 써줘야한다
+  ```
+
+- 내 생각에는 그냥 update 쓰면 될듯한데..
 
 ### Email Verification 모듈 만들기
 
@@ -1065,7 +1109,8 @@ export class User extends CoreEntity {
 
     // JoinColumn은 어디서 내가 접근 하고싶은지 에 따라서 넣는 Entity가 달라진다
     // 여기에 넣으면 EmailVerification 부터 User로 관계 찾는다
-    @OneToOne((type) => User)
+    @OneToOne((type) => User, { onDelete: 'CASCADE' })
+    // CASCADE는 user가 지워지면 같이 지워지는 옵션
     @JoinColumn()
     user: User;
   }
@@ -1083,6 +1128,7 @@ export class User extends CoreEntity {
 
   ```
   // user.service
+
   // emailVerification 레포지토리 연결 후 이용
   const verification = await this.emailVerification.findOne(
       { code },

@@ -14,7 +14,8 @@ export class EmailVerification extends CoreEntity {
 
   // JoinColumn은 어디서 내가 접근 하고싶은지 에 따라서 넣는 Entity가 달라진다
   // 여기에 넣으면 EmailVerification 부터 User로 관계 찾는다
-  @OneToOne((type) => User)
+  @OneToOne((type) => User, { onDelete: 'CASCADE' })
+  // CASCADE는 user가 지워지면 같이 지워지는 옵션
   @JoinColumn()
   user: User;
 
