@@ -104,4 +104,19 @@ export class UsersService {
     // update 메서드는 단순히 DB 변경만 하기때문에 entity에서 @BeforeUpdate가 동작하지 않는다
     // save는 있으면 추가하고 없으면 update 한다 이때 entity를 통과한다
   }
+
+  async verifyEmail(code: string): Promise<boolean> {
+    const verification = await this.emailVerification.findOne(
+      { code },
+      // { loadRelationIds: true },
+      { relations: ['user'] },
+      // 위 둘 옵션 있어야지 relation 관련 컬럼 가지고 온다
+      // relation은 상당히 복잡한 작업이기 때문에 옵션으로 요청을 해야한다
+    );
+    if (verification) {
+      verification.user.verified = true;
+      this.users.save(verification.user);
+    }
+    return false;
+  }
 }

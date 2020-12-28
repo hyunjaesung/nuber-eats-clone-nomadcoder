@@ -1079,5 +1079,21 @@ export class User extends CoreEntity {
   // app.module
   // TypeOrm Module에 Entity 추가
 
+  ```
 
+  ```
+  // user.service
+  // emailVerification 레포지토리 연결 후 이용
+  const verification = await this.emailVerification.findOne(
+      { code },
+      // { loadRelationIds: true },
+      { relations: ['user'] },
+      // 위 둘 옵션 있어야지 relation 관련 컬럼 가지고 온다
+      // relation은 상당히 복잡한 작업이기 때문에 옵션으로 요청을 해야한다
+    );
+  ```
+
+- 랜덤 문자 만들기
+  ```
+    Math.random().toString(36);
   ```

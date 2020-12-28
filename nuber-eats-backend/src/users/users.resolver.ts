@@ -12,6 +12,7 @@ import { AuthUser } from 'src/auth/auth-user.decorator';
 import { UserProfileInput, UserProfileOutput } from './dto/user-profile.dto';
 import { EditProfileOutput, EditProfileInput } from './dto/edit-profile.dto';
 import { async } from 'rxjs';
+import { verifyEmailOutput, VerifyEmailInput } from './dto/veryfy-email.dto';
 
 @Resolver((_) => User)
 export class UsersResolver {
@@ -97,5 +98,9 @@ export class UsersResolver {
         error,
       };
     }
+  }
+  @Mutation((returns) => verifyEmailOutput)
+  verifyEmail(@Args('input') { code }: VerifyEmailInput) {
+    this.usersService.verifyEmail(code);
   }
 }
