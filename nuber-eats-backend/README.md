@@ -1140,6 +1140,11 @@ export class User extends CoreEntity {
   ```
 
 - 랜덤 문자 만들기
+
   ```
     Math.random().toString(36);
   ```
+
+- mailgun 으로 인증 코드 보내기
+
+- nestjs에서 제공하는 mailer 이용하면 쉽게 이용 가능하다

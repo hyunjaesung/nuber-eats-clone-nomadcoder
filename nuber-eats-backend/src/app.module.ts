@@ -16,6 +16,7 @@ import { JwtModule } from './jwt/jwt.module';
 import { JwtMiddleware } from './jwt/jwt.middleware';
 import { AuthModule } from './auth/auth.module';
 import { EmailVerification } from './users/entities/emailVerification.entity';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   // 그래프 QL 설정
@@ -52,6 +53,9 @@ import { EmailVerification } from './users/entities/emailVerification.entity';
         DB_PASSWORD: Joi.string(),
         DB_DATABASE: Joi.string(),
         PRIVATE_KEY: Joi.string(),
+        MAILGUN_API_KEY: Joi.string(),
+        MAILGUN_DOMAIN: Joi.string(),
+        MAILGUN_FROM_EMAIL: Joi.string(),
       }),
     }),
     TypeOrmModule.forRoot({
@@ -71,6 +75,11 @@ import { EmailVerification } from './users/entities/emailVerification.entity';
     UsersModule,
     // CommonModule,
     AuthModule,
+    MailModule.forRoot({
+      apiKey: process.env.MAILGUN_API_KEY,
+      domain: process.env.MAILGUN_DOMAIN,
+      fromEmail: process.env.MAILGUN_FROM_EMAIL,
+    }),
   ],
   controllers: [],
   providers: [],
