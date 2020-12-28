@@ -919,11 +919,13 @@ export class User extends CoreEntity {
   GraphQLModule.forRoot({
       ...
       context: ({ req }) => ({ user: req['user'] }),
+      // 실행 콘텍스트에 추가 가능
     }),
   ```
 - Guard를 이용한 설정
 
   - https://docs.nestjs.com/guards
+  - https://docs.nestjs.com/graphql/other-features#execution-context
 
   ```
 
