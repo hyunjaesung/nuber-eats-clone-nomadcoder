@@ -9,6 +9,7 @@ import { EditProfileInput, EditProfileOutput } from './dto/edit-profile.dto';
 import { EmailVerification } from './entities/emailVerification.entity';
 import { UserProfileInput, UserProfileOutput } from './dto/user-profile.dto';
 import { verifyEmailOutput, VerifyEmailInput } from './dto/veryfy-email.dto';
+import { MailService } from 'src/mail/mail.service';
 @Injectable()
 export class UsersService {
   constructor(
@@ -16,6 +17,7 @@ export class UsersService {
     @InjectRepository(EmailVerification)
     private readonly emailVerification: Repository<EmailVerification>,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   async createAccount({
@@ -39,11 +41,12 @@ export class UsersService {
       const user = await this.users.save(
         this.users.create({ email, password, role }),
       );
-      await this.emailVerification.save(
+      const verification = await this.emailVerification.save(
         this.emailVerification.create({
           user,
         }),
       );
+      this.mailService.sendVerificationEmail(user.email, verification.code);
       return { ok: true };
     } catch (e) {
       return { ok: true, error: '계정을 생성할수 없습니다' };
@@ -118,9 +121,10 @@ export class UsersService {
       if (email) {
         user.email = email;
         user.verified = false;
-        await this.emailVerification.save(
+        const verification = await this.emailVerification.save(
           this.emailVerification.create({ user }),
         );
+        this.mailService.sendVerificationEmail(user.email, verification.code); // email 인증 한번더
         // user 생길때 emailVerification 도 같이 생성
       }
       if (password) {

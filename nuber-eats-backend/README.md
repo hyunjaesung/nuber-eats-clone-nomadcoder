@@ -1163,7 +1163,11 @@ nest g mo jwt
   -F to=YOU@YOUR_DOMAIN_NAME \
   -F to=bar@example.com \
   -F subject='Hello' \
+  // 텍스트 이용시
   -F text='Testing some Mailgun awesomeness!'
+  // 템플릿 이용시
+  -F template='veryfy-user'
+  -F v:변수이름='변수값'
   ```
 
   - node.js 에는 fetch가 없으므로 패키지 설치 필요
@@ -1223,4 +1227,81 @@ nest g mo jwt
         );
       }
     }
+    ```
+
+- mailgun 관리자 페이지 template 가서 역겹게 생긴 html email 만들수 있다
+
+  - {{변수이름}} 으로 템플릿에 변수 전달 가능
+
+    ```
+      ...
+      form.append('template', 'veryfy-user');
+      form.append('v:userName', `steve`);
+      form.append('v:code', `stevecode`);
+      form.append('v:company', `stevecompany`);
+      ...
+    ```
+
+    ```
+    // 리팩토링 까지 완료
+    export class MailService {
+      constructor(
+        @Inject(CONFIG_OPTIONS) private readonly options: MailModuleOptions, // 커스텀 provider 주입 // private readonly configService: ConfigService,
+      ) {}
+
+      private async sendEmail(
+        subject: string,
+        template: string,
+        emailVars: EmailVar[],
+        to: string,
+      ) {
+        const form = new FormData();
+        form.append(
+          'from',
+          `Steve from SteveCompany <mailgun@${this.options.domain}>`,
+        );
+        form.append('to', to);
+        form.append('subject', subject);
+        // form.append('text', content);
+        form.append('template', template);
+        emailVars.forEach(({ key, value }) => form.append(key, value));
+        // form.append('v:userName', `steve`);
+        // form.append('v:code', `stevecode`);
+        // form.append('v:company', `stevecompany`);
+        try {
+          const response = await got(
+            `https://api.mailgun.net/v3/${this.options.domain}/messages`,
+            {
+              https: {
+                rejectUnauthorized: false,
+              },
+              headers: {
+                Authorization: `Basic ${Buffer.from(
+                  `api:${this.options.apiKey}`,
+                ).toString('base64')}`,
+                // base64 형태로 포맷해서 보내야한다
+              },
+              method: 'POST',
+              body: form,
+            },
+          );
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      sendVerificationEmail(email: string, code: string) {
+        this.sendEmail(
+          'Plz Verify Your Email',
+          'veryfy-user',
+          [
+            { key: 'v:userName', value: email },
+            { key: 'v:code', value: code },
+            { key: 'v:company', value: 'stevecompany' },
+          ],
+          email,
+        );
+      }
+    }
+
     ```
