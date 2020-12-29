@@ -1346,3 +1346,11 @@ nest g mo jwt
   });
 
   ```
+
+- 경로 에러 해결
+
+  ```
+  // Cannot find module 'src/common/entities/core.entity' from 'users/entities/user.entity.ts'
+  // jest 는 ts의 경로 방식을 이해 못한다
+
+  ```
