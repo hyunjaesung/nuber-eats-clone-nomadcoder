@@ -17,7 +17,7 @@ const mockRepository = () => ({
 });
 
 const mockJwtService = {
-  sign: jest.fn(),
+  sign: jest.fn(() => 'tokentesttoken'),
   verify: jest.fn(),
 };
 
@@ -33,7 +33,9 @@ describe('UserService', () => {
   let usersRepository: MockRepository<User>;
   let verificationRepository: MockRepository<EmailVerification>;
   let mailService: MailService;
-  beforeAll(async () => {
+  let jwtService: JwtService;
+
+  beforeEach(async () => {
     // nest 기본 제공 테스트 모듈 이용
     // 시작 전에 테스트 모듈 생성
     const modules = await Test.createTestingModule({
@@ -64,13 +66,14 @@ describe('UserService', () => {
     usersRepository = modules.get(getRepositoryToken(User));
     verificationRepository = modules.get(getRepositoryToken(EmailVerification));
     mailService = modules.get<MailService>(MailService);
+    jwtService = modules.get<JwtService>(JwtService);
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  describe('createAccount_test', () => {
+  describe('createAccount 테스트', () => {
     const createAccountArg = {
       email: 'test@test.com',
       password: '',
@@ -144,9 +147,61 @@ describe('UserService', () => {
         expect.any(String),
       );
     });
+
+    it('에러 처리 테스트', async () => {
+      usersRepository.findOne.mockRejectedValue(new Error());
+      const result = await service.createAccount(createAccountArg);
+      expect(result).toEqual({ ok: false, error: '계정을 생성할수 없습니다' });
+    });
   });
 
-  it.todo('login');
+  describe('login 테스트', () => {
+    const loginArgs = {
+      email: '123@123.com',
+      password: '123',
+    };
+    it('유저 존재 안할 때 테스트', async () => {
+      usersRepository.findOne.mockResolvedValue(null);
+      const result = await service.login(loginArgs);
+      expect(usersRepository.findOne).toHaveBeenCalledTimes(1);
+      // findOne 4번 호출한다고 에러
+      // 위쪽 테스트에서 호출해서 count가 올라가서 에러
+      // mock 을 공유하기 때문에 생기는 에러
+      // init 설정을 beforeAll 에서 beforeEach로 생기면 해결된다
+      expect(usersRepository.findOne).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Object),
+      );
+      expect(result).toEqual({
+        ok: false,
+        error: '유저 검색 실패',
+      });
+    });
+    it('비밀번호 틀린 경우 테스트', async () => {
+      // 이런 식으로도 mock 형성 가능
+      const mockedUser = {
+        checkPassword: jest.fn(() => Promise.resolve(false)),
+      };
+      usersRepository.findOne.mockResolvedValue(mockedUser);
+      const result = await service.login(loginArgs);
+      expect(result).toEqual({ ok: false, error: '틀린 비밀번호' });
+    });
+
+    it('토큰 반환 테스트', async () => {
+      const mockedUser = {
+        id: 1,
+        checkPassword: jest.fn(() => Promise.resolve(true)),
+      };
+      usersRepository.findOne.mockResolvedValue(mockedUser);
+      const result = await service.login(loginArgs);
+      expect(jwtService.sign).toBeCalledTimes(1);
+      expect(jwtService.sign).toBeCalledWith(expect.any(Object));
+      expect(result).toEqual({
+        ok: true,
+        token: expect.any(String),
+      });
+    });
+  });
   it.todo('userProfile');
   it.todo('findById');
   it.todo('editProfile');

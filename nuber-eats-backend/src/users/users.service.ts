@@ -49,7 +49,7 @@ export class UsersService {
       this.mailService.sendVerificationEmail(user.email, verification.code);
       return { ok: true };
     } catch (e) {
-      return { ok: true, error: '계정을 생성할수 없습니다' };
+      return { ok: false, error: '계정을 생성할수 없습니다' };
     }
   }
 

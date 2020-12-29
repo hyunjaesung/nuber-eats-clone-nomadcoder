@@ -1565,5 +1565,38 @@ nest g mo jwt
         expect.any(String),
       );
     });
+
+    it('에러 처리 테스트', async () => {
+      usersRepository.findOne.mockRejectedValue(new Error());
+      const result = await service.createAccount(createAccountArg);
+      expect(result).toEqual({ ok: false, error: '계정을 생성할수 없습니다' });
+    });
   });
+  ```
+
+- mock 유저 만들어서 테스트 진행
+  ```
+  // 테스트 라인
+  <!-- const user = await this.users.findOne(
+        { email },
+        { select: ['id', 'password'] },
+      );
+      ...
+      const passwordCorrect = await user.checkPassword(password);
+      if (!passwordCorrect) {
+        return {
+          ok: false,
+          error: '틀린 비밀번호',
+        };
+      } -->
+  it('비밀번호 틀린 경우 테스트', async () => {
+      // 이런 식으로도 mock 형성 가능
+      const mockedUser = {
+        id: 1,
+        checkPassword: jest.fn(() => Promise.resolve(false)),
+      };
+      usersRepository.findOne.mockResolvedValue(mockedUser);
+      const result = await service.login(loginArgs);
+      expect(result).toEqual({ ok: false, error: '틀린 비밀번호' });
+    });
   ```
