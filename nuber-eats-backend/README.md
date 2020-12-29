@@ -1347,7 +1347,7 @@ nest g mo jwt
 
   ```
 
-- 에러 해결
+- 경로 에러 해결
 
   ```
   // Cannot find module 'src/common/entities/core.entity' from 'users/entities/user.entity.ts'
@@ -1362,9 +1362,114 @@ nest g mo jwt
   }
   ```
 
+- 의존성 문제 Mocking 으로 해결
+
   ```
   <!-- Nest can't resolve dependencies of the UsersService (?, EmailVerificationRepository, JwtService, MailService). Please make sure that the argument UserRepository at index [0] is available in the RootTestModule context. -->
   // UserService의 dependency 문제
-  // UserService는 주입된 repository가 필요하다
+  // UserService에 주입된 것들은 모듈안에 다 dependency 만들어 줘야한다
+  // 테스트용 mock 만들어줘서 해결 하도록 하자
+
+  const mockRepository = {
+    findOne: jest.fn(),
+    save: jest.fn(),
+    create: jest.fn(),
+  };
+
+  const mockJwtService = {
+    sign: jest.fn(),
+    verify: jest.fn(),
+  };
+
+  const mockMailService = {
+    sendVerification: jest.fn(),
+  };
+
+  describe('UserService', () => {
+    let service: UsersService;
+
+    beforeAll(async () => {
+      const modules = await Test.createTestingModule({
+        providers: [
+          UsersService,
+          {
+            provide: getRepositoryToken(User), // 엔티티로 레포지토리 만들어줌
+            useValue: mockRepository,
+          },
+          {
+            provide: getRepositoryToken(EmailVerification), // 엔티티로 레포지토리 만들어줌
+            useValue: mockRepository,
+          },
+          {
+            provide: JwtService,
+            useValue: mockJwtService,
+          },
+          {
+            provide: MailService,
+            useValue: mockMailService,
+          },
+        ],
+      }).compile();
+      ...
+  ```
+
+- 테스트를 위한 레포지토리 Mock으로 생성
 
   ```
+  type MockRepository<T> = Partial<Record<keyof Repository<T>, jest.Mock>>;
+  // Repository 메서드 이름들 죄다 key로 가지고 옴
+
+  describe('UserService', () => {
+    ...
+    let usersRepository: MockRepository<User>;
+
+    beforeAll(async () => {
+      ...
+      usersRepository = modules.get(getRepositoryToken(User));
+    });
+
+    ...
+
+    describe('createAccount', () => {
+      it('should fail if user exists', () => {
+        // 테스트로 하려면 있는 것처럼 속여야한다
+      });
+    });
+
+    ...
+  });
+  ```
+
+- mocking으로 테스트
+
+  ```
+  describe('createAccount', () => {
+    it('should fail if user exists', async () => {
+      // 테스트를 하려면 이미 유저가 있는 것처럼 속여야한다
+      // mock 함수의 반환 값을 테스트 용으로 교체해야한다
+
+      usersRepository.findOne.mockResolvedValue({
+        id: 1,
+        email: 'test@test.com',
+      });
+      // 이 경우 가짜 User 레포의 findOne 의 return Promise Resolve
+      // 값으로 mock 값 넣어준다
+
+      const result = await service.createAccount({
+        email: '',
+        password: '',
+        role: 1,
+      });
+      // 실행 시켜서 console.log 찍어보면 findOne이 mock 반환중
+      expect(result).toMatchObject({
+        ok: false,
+        error: '계정을 생성할수 없습니다',
+      });
+    });
+  });
+  ```
+
+- 테스트를 위한 mocking 정리
+  - 테스트를 위해서는 다 속여야 한다
+  - 테스트를 원하는 UserService를 가져와서 의존성 주입된 모듈이나 서비스, 레포지토리를 mock 으로 만들어내야 한다
+  - 테스트 원하는 메서드에서 사용하는 레포지토리도 mocking 하고 메서드도 mocking하고 반환값도 mock 해야한다
