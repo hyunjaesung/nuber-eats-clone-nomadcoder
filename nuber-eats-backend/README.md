@@ -1098,51 +1098,52 @@ nest g mo jwt
 - relations : https://typeorm.io/#/relations
 
   - one to one : A <-> B 오직 서로 하나만 갖는다
+
     - https://typeorm.io/#/one-to-one-relations
 
-  ```
-  // emailVerification.entity.ts
-  // 엔티티 생성하면 DB가보면 레포지토리 하나 더 생긴다!
-  @InputType({ isAbstract: true }) // DTO 작업 맨위에 있어야한다
-  @ObjectType()
-  @Entity()
-  export class EmailVerification extends CoreEntity {
-    // one to one 오직 하나의 유저, 오직 하나의 EmailVerification 서로 관계
-    @Column()
-    @Field((type) => String)
-    code: string;
+    ```
+    // emailVerification.entity.ts
+    // 엔티티 생성하면 DB가보면 레포지토리 하나 더 생긴다!
+    @InputType({ isAbstract: true }) // DTO 작업 맨위에 있어야한다
+    @ObjectType()
+    @Entity()
+    export class EmailVerification extends CoreEntity {
+      // one to one 오직 하나의 유저, 오직 하나의 EmailVerification 서로 관계
+      @Column()
+      @Field((type) => String)
+      code: string;
 
-    // JoinColumn은 어디서 내가 접근 하고싶은지 에 따라서 넣는 Entity가 달라진다
-    // 여기에 넣으면 EmailVerification 부터 User로 관계 찾는다
-    @OneToOne((type) => User, { onDelete: 'CASCADE' })
-    // CASCADE는 user가 지워지면 같이 지워지는 옵션
-    @JoinColumn()
-    user: User;
-  }
+      // JoinColumn은 어디서 내가 접근 하고싶은지 에 따라서 넣는 Entity가 달라진다
+      // 여기에 넣으면 EmailVerification 부터 User로 관계 찾는다
+      @OneToOne((type) => User, { onDelete: 'CASCADE' })
+      // CASCADE는 user가 지워지면 같이 지워지는 옵션
+      @JoinColumn()
+      user: User;
+    }
 
-  // user.entity.ts
-  @Column({ default: false })
-  @Field((type) => Boolean)
-  verified: boolean;
-  // 대응할 칼럼 추가
+    // user.entity.ts
+    @Column({ default: false })
+    @Field((type) => Boolean)
+    verified: boolean;
+    // 대응할 칼럼 추가
 
-  // app.module
-  // TypeOrm Module에 Entity 추가
+    // app.module
+    // TypeOrm Module에 Entity 추가
 
-  ```
+    ```
 
-  ```
-  // user.service
+    ```
+    // user.service
 
-  // emailVerification 레포지토리 연결 후 이용
-  const verification = await this.emailVerification.findOne(
-      { code },
-      // { loadRelationIds: true },
-      { relations: ['user'] },
-      // 위 둘 옵션 있어야지 relation 관련 컬럼 가지고 온다
-      // relation은 상당히 복잡한 작업이기 때문에 옵션으로 요청을 해야한다
-    );
-  ```
+    // emailVerification 레포지토리 연결 후 이용
+    const verification = await this.emailVerification.findOne(
+        { code },
+        // { loadRelationIds: true },
+        { relations: ['user'] },
+        // 위 둘 옵션 있어야지 relation 관련 컬럼 가지고 온다
+        // relation은 상당히 복잡한 작업이기 때문에 옵션으로 요청을 해야한다
+      );
+    ```
 
 - 랜덤 문자 만들기
 
@@ -1305,3 +1306,43 @@ nest g mo jwt
     }
 
     ```
+
+## #7 UNIT TESTING THE USER SERVICE
+
+### use.service.spec.ts 스스로 만들기
+
+- 테스트 init 세팅
+
+  ```
+  // users.service.spec.ts
+
+  import { Test } from '@nestjs/testing';
+  import { UsersService } from './users.service';
+
+  describe('UserService', () => {
+    let service: UsersService;
+
+    beforeAll(async () => {
+      // nest 기본 제공 테스트 모듈 이용
+      // 시작 전에 테스트 모듈 생성
+      const modules = await Test.createTestingModule({
+        providers: [UsersService],
+      }).compile();
+
+      // service를 밖으로 꺼내기
+      service = modules.get<UsersService>(UsersService);
+    });
+
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+
+    it.todo('createAccount');
+    it.todo('login');
+    it.todo('userProfile');
+    it.todo('findById');
+    it.todo('editProfile');
+    it.todo('verifyEmail');
+  });
+
+  ```
