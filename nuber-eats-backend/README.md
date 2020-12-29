@@ -1470,6 +1470,100 @@ nest g mo jwt
   ```
 
 - 테스트를 위한 mocking 정리
+
   - 테스트를 위해서는 다 속여야 한다
   - 테스트를 원하는 UserService를 가져와서 의존성 주입된 모듈이나 서비스, 레포지토리를 mock 으로 만들어내야 한다
   - 테스트 원하는 메서드에서 사용하는 레포지토리도 mocking 하고 메서드도 mocking하고 반환값도 mock 해야한다
+
+- coverage ignore 설정
+
+  ```
+  // package.json
+  "coveragePathIgnorePatterns": [
+      "node_modules",
+      ".entity.ts",
+      ".constants.ts"
+    ]
+  ```
+
+- createAccount 테스트 해보기
+
+  ```
+  // users.service.spec.ts
+
+  describe('createAccount_test', () => {
+    const createAccountArg = {
+      email: 'test@test.com',
+      password: '',
+      role: 1,
+    };
+    it('이미 계정이 존재하는 경우 테스트', async () => {
+      // 테스트를 하려면 이미 유저가 있는 것처럼 속여야한다
+      // mock 함수의 반환 값을 테스트 용으로 교체해야한다
+
+      usersRepository.findOne.mockResolvedValue({
+        id: 1,
+        email: 'test@test.com',
+      });
+      // 이 경우 가짜 User 레포의 findOne 의 return Promise Resolve
+      // 값으로 mock 값 넣어준다
+
+      const result = await service.createAccount(createAccountArg);
+      // 실행 시켜서 console.log 찍어보면 findOne이 mock 반환중
+      expect(result).toMatchObject({
+        ok: false,
+        error: '계정을 생성할수 없습니다',
+      });
+    });
+
+    it('유저 생성 테스트', async () => {
+      // 메서드 mock 데이터 설정
+      usersRepository.findOne.mockResolvedValue(undefined);
+      usersRepository.create.mockReturnValue(createAccountArg);
+      usersRepository.save.mockResolvedValue(createAccountArg);
+      verificationRepository.create.mockReturnValue({ user: createAccountArg });
+      verificationRepository.save.mockResolvedValue({ code: 'testcode' });
+
+      // 실행
+      const result = await service.createAccount(createAccountArg);
+      // 테스트
+      // return { ok: true };
+
+      expect(result).toEqual({ ok: true });
+
+      // 테스트
+      //   const user = await this.users.save(
+      //     this.users.create({ email, password, role }),
+      //   );
+      expect(usersRepository.create).toHaveBeenCalledTimes(1);
+      // 몇번 호출 되는지 확인도 가능
+      expect(usersRepository.create).toHaveBeenCalledWith(createAccountArg);
+      // 무슨 인자로 호출 됐는지
+      expect(usersRepository.save).toHaveBeenCalledTimes(1);
+      expect(usersRepository.save).toHaveBeenCalledWith(createAccountArg);
+
+      // 테스트
+      // const verification = await this.emailVerification.save(
+      //     this.emailVerification.create({
+      //       user,
+      //     }),
+      //   );
+      expect(verificationRepository.create).toHaveBeenCalledTimes(1);
+      expect(verificationRepository.create).toHaveBeenCalledWith({
+        user: createAccountArg,
+      });
+      expect(verificationRepository.save).toHaveBeenCalledTimes(1);
+      expect(verificationRepository.save).toHaveBeenCalledWith({
+        user: createAccountArg,
+      });
+
+      // 테스트
+      //   this.mailService.sendVerificationEmail(user.email, verification.code);
+      expect(mailService.sendVerificationEmail).toHaveBeenCalledTimes(1);
+      expect(mailService.sendVerificationEmail).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+      );
+    });
+  });
+  ```
