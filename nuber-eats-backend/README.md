@@ -599,6 +599,8 @@ export class User extends CoreEntity {
   }
   ```
 
+## #5 USER AUTHENTICATION
+
 ### nest 제공기능으로 jwt 기능 만들기
 
 - nest/passport를 이용하면 더쉽다
@@ -607,7 +609,7 @@ export class User extends CoreEntity {
 
 ### 사용자 정의 모듈로 JWT기능 만들기
 
-- json web token 모듈 사용 한 방법
+- json web token 모듈 사용
   - https://www.npmjs.com/package/jsonwebtoken
   - npm i jsonwebtoken
   - npm i @types/jsonwebtoken
@@ -673,42 +675,43 @@ export class User extends CoreEntity {
     // 위에서 볼수 있는 핵심 nestJS 컨셉은 모듈에서 설정하고 서비스에 주입 하는 컨셉
     ```
 
-- jwt 동적 모듈을 만들어서 쓰는 방법
+- jwt 동적 모듈을 만들기
+
+```
+nest g mo jwt
+```
+
+- nestJS 모듈은 두 종류가 종류함
+  - static module
+    - 설정이 따로 안되어있는 일반적으로 만들어서 쓰는 모듈
+  - dynamic module
+    - 설정이 따로 적용되어있는 모듈
+    - ConfigModule GraphQLModule 같은 것
+    - dynamic module은 중간과정이고 결국에는 static module이 된다
+- JWT 동적 모듈 생성
 
   ```
-  nest g mo jwt
+    nest g s jwt
+  // jwt.module
+  @Module({})
+  export class JwtModule {
+    static forRoot(): DynamicModule {
+      return {
+        module: JwtModule,
+        exports: [JwtService],
+        // JwtService를 Export해서 다른 모듈에서도 사용 할수 있게 함
+        providers: [JwtService],
+      };
+    }
+  }
+  // jwt.service
+  @Injectable()
+  export class JwtService {
+    hello() {
+      console.log('hello');
+    }
+  }
   ```
-
-  - nestJS 모듈은 두 종류가 종류함
-    - static module
-      - 설정이 따로 안되어있는 일반적으로 만들어서 쓰는 모듈
-    - dynamic module
-      - 설정이 따로 적용되어있는 모듈
-      - ConfigModule GraphQLModule 같은 것
-      - dynamic module은 중간과정이고 결국에는 static module이 된다
-  - JWT 동적 모듈 생성
-    ```
-      nest g s jwt
-    // jwt.module
-    @Module({})
-    export class JwtModule {
-      static forRoot(): DynamicModule {
-        return {
-          module: JwtModule,
-          exports: [JwtService],
-          // JwtService를 Export해서 다른 모듈에서도 사용 할수 있게 함
-          providers: [JwtService],
-        };
-      }
-    }
-    // jwt.service
-    @Injectable()
-    export class JwtService {
-      hello() {
-        console.log('hello');
-      }
-    }
-    ```
 
 - Jwt 동적 모듈에서 export한 Service users모듈에서 써보기
 
@@ -1087,7 +1090,9 @@ export class User extends CoreEntity {
 
 - 내 생각에는 그냥 update 쓰면 될듯한데..
 
-### Email Verification 모듈 만들기
+## #6 Email Verification 모듈 만들기
+
+### relations
 
 - 기본 제공 모듈 사용 하면 더 편하다
 - relations : https://typeorm.io/#/relations
@@ -1145,6 +1150,77 @@ export class User extends CoreEntity {
     Math.random().toString(36);
   ```
 
-- mailgun 으로 인증 코드 보내기
+### 메일 모듈 만들기
 
-- nestjs에서 제공하는 mailer 이용하면 쉽게 이용 가능하다
+- 커스텀 모듈 만드는건 위 jwt 커스텀 모듈과 비슷함
+  - nestjs에서 제공하는 mailer 이용하면 커스텀 모듈 없이 쉽게 이용 가능하다
+- mailgun 이용 하기
+
+  ```
+  curl -s --user 'api:YOUR_API_KEY' \
+  https://api.mailgun.net/v3/YOUR_DOMAIN_NAME/messages \
+  -F from='Excited User <mailgun@YOUR_DOMAIN_NAME>' \
+  -F to=YOU@YOUR_DOMAIN_NAME \
+  -F to=bar@example.com \
+  -F subject='Hello' \
+  -F text='Testing some Mailgun awesomeness!'
+  ```
+
+  - node.js 에는 fetch가 없으므로 패키지 설치 필요
+    ```
+    npm i got
+    npm i form-data // node 에서 http 폼 만들기
+    ```
+  - 설정
+
+    ```
+    // mail.service
+    import got from 'got';
+    import * as FormData from 'form-data';
+    import { Injectable, Inject } from '@nestjs/common';
+    import { CONFIG_OPTIONS } from '../common/common.constant';
+    import { MailModuleOptions } from './mail.interface';
+
+    @Injectable()
+    export class MailService {
+      constructor(
+        @Inject(CONFIG_OPTIONS) private readonly options: MailModuleOptions, // 커스텀 provider 주입 // private readonly configService: ConfigService,
+      ) {}
+
+      //   curl -s --user 'api:YOUR_API_KEY' \
+      //   https://api.mailgun.net/v3/YOUR_DOMAIN_NAME/messages \
+      //   -F from='Excited User <mailgun@YOUR_DOMAIN_NAME>' \
+      //   -F to=YOU@YOUR_DOMAIN_NAME \
+      //   -F to=bar@example.com \
+      //   -F subject='Hello' \
+      //   -F text='Testing some Mailgun awesomeness!'
+      private async sendEmail(
+        subject: string,
+        content: string,
+        // to:string
+      ) {
+        const form = new FormData();
+        form.append('from', `Excited User <mailgun@${this.options.domain}>`);
+        form.append('to', `stevehjsung@gmail.com`); // 원래는 인자로 받아서 넣어야함
+        form.append('text', content);
+        form.append('subject', subject);
+
+        const response = await got(
+          `https://api.mailgun.net/v3/${this.options.domain}/messages`,
+          {
+            https: {
+              rejectUnauthorized: false,
+            },
+            headers: {
+              Authorization: `Basic ${Buffer.from(
+                `api:${this.options.apiKey}`,
+              ).toString('base64')}`,
+              // base64 형태로 포맷해서 보내야한다
+            },
+            method: 'POST',
+            body: form,
+          },
+        );
+      }
+    }
+    ```
