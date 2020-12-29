@@ -14,6 +14,7 @@ const mockRepository = () => ({
   findOne: jest.fn(),
   save: jest.fn(),
   create: jest.fn(),
+  findOneOrFail: jest.fn(),
 });
 
 const mockJwtService = {
@@ -198,12 +199,36 @@ describe('UserService', () => {
       expect(jwtService.sign).toBeCalledWith(expect.any(Object));
       expect(result).toEqual({
         ok: true,
-        token: expect.any(String),
+        token: 'tokentesttoken',
       });
     });
   });
+
+  describe('findById 테스트', () => {
+    const findByIdArgs = {
+      id: 1,
+    };
+    it('유저 검색 테스트', async () => {
+      usersRepository.findOneOrFail.mockResolvedValue(findByIdArgs);
+      const result = await service.findById(1);
+      expect(result).toEqual({
+        ok: true,
+        user: {
+          id: 1,
+        },
+      });
+    });
+
+    it('유저 없을 때 테스트', async () => {
+      usersRepository.findOneOrFail.mockRejectedValue(
+        new Error('찾을 수 없습니다'),
+      );
+      // mockRejectValue 써야 함 주의
+      const result = await service.findById(1);
+      expect(result).toEqual({ ok: false, error: '찾을 수 없습니다' });
+    });
+  });
   it.todo('userProfile');
-  it.todo('findById');
   it.todo('editProfile');
   it.todo('verifyEmail');
 });

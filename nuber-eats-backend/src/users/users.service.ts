@@ -108,8 +108,16 @@ export class UsersService {
     }
   }
 
-  async findById(id: number): Promise<User> {
-    return await this.users.findOne({ id });
+  async findById(id: number): Promise<UserProfileOutput> {
+    try {
+      const user = await this.users.findOneOrFail({ id });
+      return {
+        ok: true,
+        user,
+      };
+    } catch (error) {
+      return { ok: false, error: '찾을 수 없습니다' };
+    }
   }
 
   async editProfile(
