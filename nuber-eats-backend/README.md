@@ -1347,10 +1347,24 @@ nest g mo jwt
 
   ```
 
-- 경로 에러 해결
+- 에러 해결
 
   ```
   // Cannot find module 'src/common/entities/core.entity' from 'users/entities/user.entity.ts'
   // jest 는 ts의 경로 방식을 이해 못한다
+  // package.json
+  "jest": {
+    "rootDir": "src",
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
+    },
+    ...
+  }
+  ```
+
+  ```
+  <!-- Nest can't resolve dependencies of the UsersService (?, EmailVerificationRepository, JwtService, MailService). Please make sure that the argument UserRepository at index [0] is available in the RootTestModule context. -->
+  // UserService의 dependency 문제
+  // UserService는 주입된 repository가 필요하다
 
   ```
