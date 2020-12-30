@@ -7,7 +7,7 @@ import { LoginInput } from './dto/login.dto';
 import { JwtService } from 'src/jwt/jwt.service';
 import { EditProfileInput, EditProfileOutput } from './dto/edit-profile.dto';
 import { EmailVerification } from './entities/emailVerification.entity';
-import { UserProfileInput, UserProfileOutput } from './dto/user-profile.dto';
+import { UserProfileOutput } from './dto/user-profile.dto';
 import { verifyEmailOutput, VerifyEmailInput } from './dto/veryfy-email.dto';
 import { MailService } from 'src/mail/mail.service';
 @Injectable()
