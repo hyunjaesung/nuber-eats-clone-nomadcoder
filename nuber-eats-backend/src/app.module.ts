@@ -45,7 +45,7 @@ import { MailModule } from './mail/mail.module';
       ignoreEnvFile: process.env.NODE_ENV === 'prod',
       validationSchema: Joi.object({
         // env 값 검증
-        NODE_ENV: Joi.string().valid('dev', 'prod'),
+        NODE_ENV: Joi.string().valid('dev', 'prod', 'test'),
         // NODE_ENV 유효성 검사해서 더높은 보안 제공
         DB_HOST: Joi.string(),
         DB_PORT: Joi.string(),
@@ -66,7 +66,8 @@ import { MailModule } from './mail/mail.module';
       password: process.env.DB_PASSWORD, // 로컬호스트에서는 안써도된다
       database: process.env.DB_DATABASE,
       synchronize: process.env.NODE_ENV !== 'prod', // 어플리케이션 상태로 DB migration
-      logging: process.env.NODE_ENV !== 'prod',
+      logging:
+        process.env.NODE_ENV !== 'prod' && process.env.NODE_ENV !== 'test',
       entities: [User, EmailVerification],
     }),
     JwtModule.forRoot({

@@ -1601,6 +1601,9 @@ nest g mo jwt
       expect(result).toEqual({ ok: false, error: '틀린 비밀번호' });
     });
   ```
+
+## #8 UNIT TESTING JWT AND MAIL
+
 - spyOn으로 mock 대체 하기
 
   ```
@@ -1654,4 +1657,52 @@ nest g mo jwt
   //     `Steve from SteveCompany <mailgun@${this.options.domain}>`,
   //     );
 
+  ```
+
+- coverage 폴더에 index.html 실행 시켜보면 html화면으로 coverage 보여준다
+
+## #9 USER MODULE E2E
+
+- ts방식 경로 에러 해결
+
+  ```
+  // jest-e2e.json
+
+  {
+    ...
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/../src/$1"
+    }
+    // 한번 밖으로 나가서 src 찾아야 된다
+  }
+  ```
+
+- db error
+
+  ```
+  // .env.test 만들어 준다
+  DB_HOST=localhost
+  DB_PORT=5432
+  DB_USERNAME=stevesung
+  DB_PASSWORD=12345
+  DB_DATABASE=nuber-eats-test
+  PRIVATE_KEY=testKey
+  MAILGUN_API_KEY=...
+  MAILGUN_DOMAIN=...
+  MAILGUN_FROM_EMAIL=good@good.com
+
+  // 테스트용 db도 nuber-eats-test 이름으로 postico 가서 만들어준다
+  ```
+
+- Jest did not exit one second after the test run has completed.
+
+  ```
+  // 테스트 종료 후
+  // jest 종료 시켜줘야 한다
+  // db drop 시켜야한다
+
+  afterAll(async () => {
+    getConnection().dropDatabase();
+    app.close();
+  });
   ```
