@@ -60,6 +60,7 @@ export class UsersService {
     // 이메일 유저를 찾는다
     // 비밀번호와 일치하는지 확인한다
     // JWT 만들어서 전달
+    console.log(email, password);
     try {
       const user = await this.users.findOne(
         { email },

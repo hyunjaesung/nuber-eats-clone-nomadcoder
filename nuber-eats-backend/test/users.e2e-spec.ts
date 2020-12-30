@@ -13,9 +13,16 @@ jest.mock('got', () => {
 });
 
 const GRAPHQL_ENDPOINT = '/graphql';
+const testUser = {
+  email: 'test@test,com',
+  password: '123',
+};
+
 // 여기서는 resolver 를 테스트 해보자
 describe('UserModule (e2e)', () => {
   let app: INestApplication;
+  const graphqlRequest = ({ query }) =>
+    request(app.getHttpServer()).post(GRAPHQL_ENDPOINT).send({ query });
 
   beforeAll(async () => {
     // beforeAll로 해야함 주의
@@ -36,7 +43,6 @@ describe('UserModule (e2e)', () => {
   });
 
   describe('createAccount', () => {
-    const EMAIL = 'test@test,com';
     it('계정 생성 테스트', () => {
       return request(app.getHttpServer()) // supertest 이용
         .post(GRAPHQL_ENDPOINT)
@@ -44,8 +50,8 @@ describe('UserModule (e2e)', () => {
           // http에서 grapqhql 보내는 방식으로 넣어서 query 로 요청
           query: `mutation{
                 createAccount(input:{
-                  email:"${EMAIL}",
-                  password:"123",
+                  email:"${testUser.email}",
+                  password:"${testUser.password}",
                   role:Delivery
                 }){
                   ok,
@@ -68,8 +74,8 @@ describe('UserModule (e2e)', () => {
           // http에서 grapqhql 보내는 방식으로 넣어서 query 로 요청
           query: `mutation{
                 createAccount(input:{
-                  email:"${EMAIL}",
-                  password:"123",
+                  email:"${testUser.email}",
+                  password:"${testUser.password}",
                   role:Delivery
                 }){
                   ok,
@@ -88,8 +94,58 @@ describe('UserModule (e2e)', () => {
         });
     });
   });
+  describe('login', () => {
+    it('로그인 테스트', () => {
+      return graphqlRequest({
+        query: `mutation{
+            login(input:{email:"${testUser.email}",password:"${testUser.password}"}){
+              ok
+              error
+              token
+            }
+          }`,
+      })
+        .expect(200)
+        .expect((res) => {
+          const {
+            body: {
+              data: { login },
+            },
+          } = res;
+          expect(login.ok).toBe(true);
+          expect(login.error).toEqual(null);
+          expect(login.token).toEqual(expect.any(String));
+        });
+    });
+    it('로그인 실패 테스트', () => {
+      return graphqlRequest({
+        query: `
+        mutation {
+          login(input:{
+            email:"${testUser.email}",
+            password:"xxx",
+          }) {
+            ok
+            error
+            token
+          }
+        }
+      `,
+      })
+        .expect(200)
+        .expect((res) => {
+          const {
+            body: {
+              data: { login },
+            },
+          } = res;
+          expect(login.ok).toBe(false);
+          expect(login.error).toBe('틀린 비밀번호');
+          expect(login.token).toBe(null);
+        });
+    });
+  });
   it.todo('userProfile');
-  it.todo('login');
   it.todo('me');
   it.todo('verifyEmail');
   it.todo('editProfile');
