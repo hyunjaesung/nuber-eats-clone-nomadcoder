@@ -43,7 +43,7 @@ export class UsersResolver {
   async userProfile(
     @Args() userProfileInput: UserProfileInput,
   ): Promise<UserProfileOutput> {
-    return await this.usersService.userProfile(userProfileInput);
+    return await this.usersService.findById(userProfileInput.userId);
   }
 
   @UseGuards(AuthGuard)

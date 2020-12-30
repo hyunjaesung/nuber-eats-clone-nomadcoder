@@ -89,24 +89,6 @@ export class UsersService {
       return { error, ok: false };
     }
   }
-  async userProfile({ userId }: UserProfileInput): Promise<UserProfileOutput> {
-    try {
-      const user = await this.users.findOne({ id: userId });
-      if (user) {
-        return {
-          ok: true,
-          user,
-        };
-      } else {
-        throw Error('유저를 찾을 수 없습니다');
-      }
-    } catch (error) {
-      return {
-        ok: false,
-        error,
-      };
-    }
-  }
 
   async findById(id: number): Promise<UserProfileOutput> {
     try {
@@ -166,15 +148,18 @@ export class UsersService {
         verification.user.verified = true;
         this.users.save(verification.user);
         // await this.users.update(verification.user.id, { verified: true });
+        // 인증 후에는 삭제
+        this.emailVerification.delete(verification.id);
         return {
           ok: true,
         };
+      } else {
+        return { ok: false, error: 'Verification not found.' };
       }
-      throw Error();
     } catch (error) {
       return {
         ok: false,
-        error,
+        error: 'Could not verify email.',
       };
     }
   }
