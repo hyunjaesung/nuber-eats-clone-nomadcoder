@@ -9,6 +9,27 @@
 - '>' gitignore 클릭
 - node 클릭하면 node 관련 gitignore 자동 생성
 
+### nestJS의 컨셉
+
+- 의존성 주입
+  - https://poiemaweb.com/angular-service
+  - 의존성 주입은 의존 관계를 긴밀한 결합(Tight Coupling)에서 느슨한 결합(Loose Coupling)으로 의존 관계를 전환하기 위해 구성 요소 간의 의존 관계를 코드 내부가 아닌 외부의 설정 등을 통해 정의하는 디자인 패턴 중의 하나로서 구성 요소 간 결합도를 낮추고 재사용성을 높인다.
+  - 프레임워크에게 의존성 인스턴스를 요구하고 프레임워크가 생성한 인스턴스를 전달받아 사용하는 방식
+- Providers
+
+  - https://docs.nestjs.com/providers
+  - 의존성 주입을 할수 있다
+    - 다른 것들과 많은 관계를 가질 수 있다
+    - 런타임 중에 인스턴스들이 엮여 나감
+  - @Injectable() 는 Nest Provider임을 보여주는 데코레이터
+
+- 인스턴스들은 죄다 형성후 변화가 공유가되는 싱글톤 형태다
+
+- Module
+  - providers : 이 모듈 안에서 공유되고 쓰여질 의존성 주입될 인스턴스
+  - export : 공유 되는 인스턴스 중에 밖으로 나갈것
+  - import : 이 모듈에서 쓰일 provider를 내보내는 모듈 리스트
+
 ## #1 GRAPHQL API
 
 ### nestjs graphql 설치
@@ -548,3 +569,1257 @@ export class User extends CoreEntity {
     role: UserRole;
 }
 ```
+
+### 비밀번호 해싱
+
+- TypeOrm의 Listener 이용
+
+  - https://typeorm.io/#/listeners-and-subscribers
+  - @BeforeInsert 이용 하면 생성 다 끝내고 DB에 entity insert 되기 직전에 저걸 불러서 처리가능
+
+- bcrypt npm 모듈 이용
+
+  - npm i bcrypt @types/bcrypt
+
+- 설정
+  ```
+  // user.entity
+  export class User extends CoreEntity {
+  ...
+  @BeforeInsert()
+  async hashPassword(): Promise<void> {
+    try {
+      console.log(this.password);
+      this.password = await bcrypt.hash(this.password, 10);
+      console.log(this.password);
+    } catch (e) {
+      console.warn(e);
+      throw new InternalServerErrorException();
+    }
+  }
+  ```
+
+## #5 USER AUTHENTICATION
+
+### nest 제공기능으로 jwt 기능 만들기
+
+- nest/passport를 이용하면 더쉽다
+
+  - https://docs.nestjs.com/security/authentication#implementing-passport-strategies
+
+### 사용자 정의 모듈로 JWT기능 만들기
+
+- json web token 모듈 사용
+  - https://www.npmjs.com/package/jsonwebtoken
+  - npm i jsonwebtoken
+  - npm i @types/jsonwebtoken
+- 설정
+
+  - privateKey 설정
+
+    ```
+    var token = jwt.sign({ foo: 'bar' }, privateKey, { algorithm: 'RS256'});
+    ```
+
+    - 유저가 임의로 Token 조작했는지 알아보기위해서
+
+    ```
+    // .env.dev
+    ...
+    SECRET_KEY=랜덤랜덤
+
+    // app.module
+    ConfigModule.forRoot({
+      ...
+      validationSchema: Joi.object({
+        // env 값 검증
+        NODE_ENV: Joi.string().valid('dev', 'prod'),
+        // NODE_ENV 유효성 검사해서 더높은 보안 제공
+        DB_HOST: Joi.string(),
+        DB_PORT: Joi.string(),
+        DB_USERNAME: Joi.string(),
+        DB_PASSWORD: Joi.string(),
+        DB_DATABASE: Joi.string(),
+        SECRET_KEY: Joi.string(), // 추가
+      }),
+    }),
+
+    // users. service
+    export class UsersService {
+      constructor(
+        ...
+        private readonly config: ConfigService,
+        // 설정값 쓰기위해 ConfigService inject
+        // 글로벌 설정해놔서 따로 import 없이 바로 사용 가능
+      ) {}
+      // 설정하고 요청하면 주는게 nestJS의 컨셉
+
+      async login({
+        email,
+        password,
+        }: LoginInput): Promise<{ ok: boolean; error?: string; token?: string }> {
+        ...
+      // 토큰 생성
+      const token = jwt.sign({ id: user.id }, this.config.get('SECRET_KEY'));
+      // 누구나 decode 가능하므로 중요 데이터는 넣으면 안된다
+
+      return {
+        ok: true,
+        token: '14324134',
+      };
+    } catch (error) {
+      return { error, ok: false };
+    }
+    }
+    }
+    // 위에서 볼수 있는 핵심 nestJS 컨셉은 모듈에서 설정하고 서비스에 주입 하는 컨셉
+    ```
+
+- jwt 동적 모듈을 만들기
+
+```
+nest g mo jwt
+```
+
+- nestJS 모듈은 두 종류가 종류함
+  - static module
+    - 설정이 따로 안되어있는 일반적으로 만들어서 쓰는 모듈
+  - dynamic module
+    - 설정이 따로 적용되어있는 모듈
+    - ConfigModule GraphQLModule 같은 것
+    - dynamic module은 중간과정이고 결국에는 static module이 된다
+- JWT 동적 모듈 생성
+
+  ```
+    nest g s jwt
+  // jwt.module
+  @Module({})
+  export class JwtModule {
+    static forRoot(): DynamicModule {
+      return {
+        module: JwtModule,
+        exports: [JwtService],
+        // JwtService를 Export해서 다른 모듈에서도 사용 할수 있게 함
+        providers: [JwtService],
+      };
+    }
+  }
+  // jwt.service
+  @Injectable()
+  export class JwtService {
+    hello() {
+      console.log('hello');
+    }
+  }
+  ```
+
+- Jwt 동적 모듈에서 export한 Service users모듈에서 써보기
+
+  ```
+  // app.module
+  JwtModule.forRoot(),
+  // forRoot() 써서 Service 자동 exports 된다
+
+  // users.module
+  import:[JwtService]
+  // 이렇게 import 요청만 하면 바로 쓸수 있다
+
+  // users.service
+  export class UsersService {
+    constructor(
+      ...
+      private readonly jwtService: JwtService,
+    ) {}
+    ...
+  }
+  // 문제는 에러가 난다
+  // global 모듈이 아니면 providers에도 넣어줘야 되기 때문
+  // import 하고 module providers에 등록해서 서비스 기능 이용 하는 컨셉
+  // 이게 싫으면  global 모듈로 기능하게 하면 굳이 import 안해도 된다
+
+  // jwt.module
+  @Global() // 이거 선언하면 바로 글로벌 된다
+  @Module({})
+  export class JwtModule {
+    static forRoot(): DynamicModule {
+      return {
+  ```
+
+- Jwt 모듈 옵션 기능
+
+  ```
+  // jwt.interface
+  export interface JwtModuleOptions {
+    privateKey: string;
+  }
+
+  // jwt.module
+  export class JwtModule {
+    static forRoot(options: JwtModuleOptions): DynamicModule {
+      return {
+        module: JwtModule,
+        exports: [JwtService],
+        // JwtService를 Export해서 다른 모듈에서도 provider 사용 할수 있게 함
+        providers: [
+          // {
+          //   provide: JwtService,
+          //   useClass: JwtService,
+          // }
+          // 그냥 JwtService 라고 쓰면 이 상태와 동일
+
+          // 아래와 같이 provider 생성 가능
+          {
+            provide: 'banana', // provider 이름
+            useValue: options, // 그 value
+            // useClass 쓰면 class inject가능
+          },
+        ],
+      };
+    }
+  }
+  // jwt.service
+  @Injectable()
+  export class JwtService {
+    constructor(
+      @Inject(CONFIG_OPTIONS) private readonly options: JwtModuleOptions, // 커스텀 provider 주입 // private readonly configService: ConfigService,
+    ) {}
+    // 이렇게 따로 값을 inject 가능
+    sign(payload: object): string {
+      return jwt.sign(payload, this.options.privateKey);
+      // return jwt.sign(payload, this.configService.get('PRIVATE_KEY'));
+      // 사실 옵션안하고 위에서 처럼 그냥 글로벌 모듈에 속한 provider인 ConfigService 주입해서 쓰면되긴한다
+    }
+  }
+
+
+  // app.module
+   JwtModule.forRoot({
+      privateKey: process.env.PRIVATE_KEY,
+    }),
+
+  // user.service
+
+  const token = this.jwtService.sign({ id: user.id });
+
+  ```
+
+### JWT 인증 미들웨어
+
+- 사용자가 http 헤더에 토큰을 넣어서 요청하면 미들웨어가 express next처럼 인증 하고 처리해야한다
+
+  - https://docs.nestjs.com/middleware#middleware
+
+- 미들웨어 설정
+
+  ```
+  // jwt.middleware
+  import { NestMiddleware } from '@nestjs/common';
+  import { Request, Response, NextFunction } from 'express';
+
+  // export class JwtMiddleware implements NestMiddleware {
+  //   // implements 는 extends와 다르게 클래스가 interface 처럼 동작 해야한다
+  //   use(req: Request, res: Response, next: NextFunction) {
+  //     console.log(req.headers);
+  //     next();
+  //   }
+  // }
+
+  // nest 데코레이터를 사용안하면 이렇게 함수로 만들어도 된다
+  export function jwtMiddleware(req: Request, res: Response, next: NextFunction) {
+    console.log(req.headers);
+    next();
+  }
+  ```
+
+- 미들웨어 적용
+
+  ```
+  // 첫번째 방법 app.module 에 설정
+  export class AppModule implements NestModule {
+    // 루트모듈에 미들웨어 설치
+    // 미들웨어는 어떤 모듈이나 설치 가능
+    configure(consumer: MiddlewareConsumer) {
+      consumer.apply(jwtMiddleware).forRoutes({
+        path: '*',
+        method: RequestMethod.ALL,
+      });
+      // 특정 루트 특정 메서드 미들웨어 지정 가능
+      // consumer.apply(JwtMiddleware).exclude({
+      //   path: '/블라블라',
+      //   method: RequestMethod.ALL,
+      // });
+      // 제외도 가능
+    }
+  }
+
+  // 두번째 방법 main.ts에 설정, 함수만 등록가능
+  async function bootstrap() {
+    // 모든게 App module 로 합쳐진다
+    const app = await NestFactory.create(AppModule);
+    app.useGlobalPipes(new ValidationPipe());
+    app.use(jwtMiddleware);
+    await app.listen(3001);
+  }
+  bootstrap();
+  ```
+
+- 미들웨어 jwt 인증 기능 확장
+
+  - 중간에 http 헤더에서 토큰 받아서 해독해서 id로 DB에서 해당 유저 정보 꺼내오기
+
+  ```
+  // jwt.service
+  @Injectable()
+  export class JwtService {
+
+    ....
+    verify(token: string) {
+      return jwt.verify(token, this.options.privateKey);
+      // https://www.npmjs.com/package/jsonwebtoken
+      // Returns the payload decoded if the signature is valid and optional expiration, audience, or issuer are valid. If not, it will throw the error.
+    }
+  }
+  // users.service
+  @Injectable()
+  export class UsersService {
+    ...
+    async findById(id: number): Promise<User> {
+      return this.users.findOne({ id });
+    }
+  }
+
+  // jwt.middleware
+  @Injectable()
+  export class JwtMiddleware implements NestMiddleware {
+    // implements 는 extends와 다르게 클래스가 interface 처럼 동작 해야한다
+    constructor(
+      private readonly jwtService: JwtService, // 글로벌 모듈이라서 의존성 주입 바로된다
+      private readonly userService: UsersService, // user.module이 export 해야 쓸수 있음
+    ) {}
+    async use(req: Request, res: Response, next: NextFunction) {
+      if ('x-jwt' in req.headers) {
+        const token = req.headers['x-jwt'];
+        const decoded = this.jwtService.verify(token.toString());
+        if (typeof decoded === 'object' && decoded.hasOwnProperty('id')) {
+          try {
+            const user = await this.userService.findById(decoded['id']);
+            req['user'] = user;
+            // req 안에 새로운 걸 넣은 것
+          } catch (error) {}
+        }
+      }
+      next();
+    }
+  }
+  ```
+
+### 인증과 인가
+
+- GraphQL Context
+  - 아폴로에 있는 context property에 request 마다 넣게되고 resolver 에서 공유가능
+  ```
+   // app.module.ts
+  GraphQLModule.forRoot({
+      ...
+      context: ({ req }) => ({ user: req['user'] }),
+      // 실행 콘텍스트에 추가 가능
+    }),
+  ```
+- Guard를 이용한 설정
+
+  - https://docs.nestjs.com/guards
+  - https://docs.nestjs.com/graphql/other-features#execution-context
+
+  ```
+
+  // auth.guard.ts
+  @Injectable()
+  // Guard 를 이용하면 Endpoint 보호 가능
+  export class AuthGuard implements CanActivate {
+    // CanActivate 은 return true면
+    // request 계속 진행 시키고
+    // 아니면 request 중단 시킴
+
+    canActivate(context: ExecutionContext) {
+      const gqlContext = GqlExecutionContext.create(context).getContext();
+      // http 요청과 gql 형태 달라서 변형
+      const user = gqlContext['user'];
+      console.log(user);
+      if (!user) {
+        return false;
+      }
+      return true;
+    }
+  }
+
+  // user.resolver.ts
+  @Query((returns) => User)
+  @UseGuards(AuthGuard) // 가드 적용 false 리턴이면 해당 쿼리 request 중단
+  me(@Context() context) {}
+  ```
+
+- 커스텀 데코레이터를 이용한 설정
+
+  ```
+  // 역할 따라 다르게 쿼리 데이터 전달 할수 있는 장점 있다
+  // auth-user.decorator.ts
+  export const AuthUser = createParamDecorator(
+    (data: unknown, context: ExecutionContext) => {
+      const gqlContext = GqlExecutionContext.create(context).getContext();
+      // http 요청과 gql 형태 달라서 변형
+      const user = gqlContext['user'];
+      return user;
+    },
+  );
+
+  @Query((returns) => User)
+    @UseGuards(AuthGuard) // 가드 적용 false 리턴이면 해당 쿼리 request 중단
+    me(@AuthUser() authedUser: User) {
+      return authedUser;
+    }
+  ```
+
+### 유저 프로필
+
+- 프로필 업데이트
+
+  ```
+  // edit-profile dto
+  @ObjectType()
+  export class EditProfileOutput extends CoreOutput {}
+
+  @InputType()
+  export class EditProfileInput extends PartialType(
+    PickType(User, ['email', 'password']),
+  ) {}
+
+  //user.service
+  async editProfile(userId: number, editProfileInput: EditProfileInput) {
+    // {email, password} 방법 쓰면 값을 안넣으주면 undefined되는 문제가 있다
+    return this.users.update({ id: userId }, { ...editProfileInput });
+  }
+
+  //user.resolver
+  @UseGuards(AuthGuard)
+  @Mutation((returns) => EditProfileOutput)
+  async editProfile(
+    @AuthUser() authedUser: User,
+    @Args('input') editProfileInput: EditProfileInput,
+  ): Promise<EditProfileOutput> {
+    try {
+      await this.usersService.editProfile(authedUser.id, editProfileInput);
+      return {
+        ok: true,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error,
+      };
+    }
+  }
+
+
+  export class User extends CoreEntity {
+  @BeforeInsert()
+  @BeforeUpdate() // 업데이트시 이거 추가해야 해당칼럼 해쉬화 된다!
+  async hashPassword(): Promise<void> {
+    ...
+  }
+
+  // BeforeUpdate() 를 해도 해쉬화가 안되는 문제 있다
+  // user.service
+  async editProfile(
+    userId: number,
+    { email, password }: EditProfileInput,
+  ): Promise<User> {
+    const user = await this.users.findOne(userId);
+    if (email) {
+      user.email = email;
+    }
+    if (password) {
+      user.password = password;
+    }
+    return this.users.save(user);
+    // return this.users.update(userId, {...editProfileInput})
+    // update 메서드는 단순히 DB 변경만 하기때문에 entity에서 @BeforeUpdate가 동작하지 않는다
+    // save는 있으면 추가하고 없으면 update 한다 이때 entity를 통과한다
+  }
+  ```
+
+- 위 방법으로 그냥 save쓰면 sideEffect 발생한다
+
+  - 비밀번호가 계속 해싱되서 다른 비밀번호로 바뀐다
+
+  ```
+  // user.entity
+
+  @Field((type) => String)
+  @Column({ select: false })
+  // select false 하면 user 레포 소환시 password 안 담아 준다
+  @IsString()
+  password: string;
+
+  ...
+
+  @BeforeInsert()
+  @BeforeUpdate() // 업데이트시 이거 추가해야 해당칼럼 해쉬화 된다!
+  async hashPassword(): Promise<void> {
+    if (this.password) {
+      // password 가 안에 있을 경우만 업데이트
+      try {
+        this.password = await bcrypt.hash(this.password, 10);
+      } catch (e) {
+        console.warn(e);
+        throw new InternalServerErrorException();
+      }
+    }
+  }
+  // 비밀번호가 필요할때는
+  // user.service.ts
+
+  const exists = await this.users.findOne(
+        {
+          email,
+        },
+        { select: ['password'] },
+      );
+    // select로 가져오는 경우는 이렇게 명시적으로 가져와야되는데 여기서는 password만 가지고 오게된다
+    // 필요한 것 다 써줘야한다
+  ```
+
+- 내 생각에는 그냥 update 쓰면 될듯한데..
+
+## #6 Email Verification 모듈 만들기
+
+### relations
+
+- 기본 제공 모듈 사용 하면 더 편하다
+- relations : https://typeorm.io/#/relations
+
+  - one to one : A <-> B 오직 서로 하나만 갖는다
+
+    - https://typeorm.io/#/one-to-one-relations
+
+    ```
+    // emailVerification.entity.ts
+    // 엔티티 생성하면 DB가보면 레포지토리 하나 더 생긴다!
+    @InputType({ isAbstract: true }) // DTO 작업 맨위에 있어야한다
+    @ObjectType()
+    @Entity()
+    export class EmailVerification extends CoreEntity {
+      // one to one 오직 하나의 유저, 오직 하나의 EmailVerification 서로 관계
+      @Column()
+      @Field((type) => String)
+      code: string;
+
+      // JoinColumn은 어디서 내가 접근 하고싶은지 에 따라서 넣는 Entity가 달라진다
+      // 여기에 넣으면 EmailVerification 부터 User로 관계 찾는다
+      @OneToOne((type) => User, { onDelete: 'CASCADE' })
+      // CASCADE는 user가 지워지면 같이 지워지는 옵션
+      @JoinColumn()
+      user: User;
+    }
+
+    // user.entity.ts
+    @Column({ default: false })
+    @Field((type) => Boolean)
+    verified: boolean;
+    // 대응할 칼럼 추가
+
+    // app.module
+    // TypeOrm Module에 Entity 추가
+
+    ```
+
+    ```
+    // user.service
+
+    // emailVerification 레포지토리 연결 후 이용
+    const verification = await this.emailVerification.findOne(
+        { code },
+        // { loadRelationIds: true },
+        { relations: ['user'] },
+        // 위 둘 옵션 있어야지 relation 관련 컬럼 가지고 온다
+        // relation은 상당히 복잡한 작업이기 때문에 옵션으로 요청을 해야한다
+      );
+    ```
+
+- 랜덤 문자 만들기
+
+  ```
+    Math.random().toString(36);
+  ```
+
+### 메일 모듈 만들기
+
+- 커스텀 모듈 만드는건 위 jwt 커스텀 모듈과 비슷함
+  - nestjs에서 제공하는 mailer 이용하면 커스텀 모듈 없이 쉽게 이용 가능하다
+- mailgun 이용 하기
+
+  ```
+  curl -s --user 'api:YOUR_API_KEY' \
+  https://api.mailgun.net/v3/YOUR_DOMAIN_NAME/messages \
+  -F from='Excited User <mailgun@YOUR_DOMAIN_NAME>' \
+  -F to=YOU@YOUR_DOMAIN_NAME \
+  -F to=bar@example.com \
+  -F subject='Hello' \
+  // 텍스트 이용시
+  -F text='Testing some Mailgun awesomeness!'
+  // 템플릿 이용시
+  -F template='veryfy-user'
+  -F v:변수이름='변수값'
+  ```
+
+  - node.js 에는 fetch가 없으므로 패키지 설치 필요
+    ```
+    npm i got
+    npm i form-data // node 에서 http 폼 만들기
+    ```
+  - 설정
+
+    ```
+    // mail.service
+    import got from 'got';
+    import * as FormData from 'form-data';
+    import { Injectable, Inject } from '@nestjs/common';
+    import { CONFIG_OPTIONS } from '../common/common.constant';
+    import { MailModuleOptions } from './mail.interface';
+
+    @Injectable()
+    export class MailService {
+      constructor(
+        @Inject(CONFIG_OPTIONS) private readonly options: MailModuleOptions, // 커스텀 provider 주입 // private readonly configService: ConfigService,
+      ) {}
+
+      //   curl -s --user 'api:YOUR_API_KEY' \
+      //   https://api.mailgun.net/v3/YOUR_DOMAIN_NAME/messages \
+      //   -F from='Excited User <mailgun@YOUR_DOMAIN_NAME>' \
+      //   -F to=YOU@YOUR_DOMAIN_NAME \
+      //   -F to=bar@example.com \
+      //   -F subject='Hello' \
+      //   -F text='Testing some Mailgun awesomeness!'
+      private async sendEmail(
+        subject: string,
+        content: string,
+        // to:string
+      ) {
+        const form = new FormData();
+        form.append('from', `Excited User <mailgun@${this.options.domain}>`);
+        form.append('to', `stevehjsung@gmail.com`); // 원래는 인자로 받아서 넣어야함
+        form.append('text', content);
+        form.append('subject', subject);
+
+        const response = await got(
+          `https://api.mailgun.net/v3/${this.options.domain}/messages`,
+          {
+            https: {
+              rejectUnauthorized: false,
+            },
+            headers: {
+              Authorization: `Basic ${Buffer.from(
+                `api:${this.options.apiKey}`,
+              ).toString('base64')}`,
+              // base64 형태로 포맷해서 보내야한다
+            },
+            method: 'POST',
+            body: form,
+          },
+        );
+      }
+    }
+    ```
+
+- mailgun 관리자 페이지 template 가서 역겹게 생긴 html email 만들수 있다
+
+  - {{변수이름}} 으로 템플릿에 변수 전달 가능
+
+    ```
+      ...
+      form.append('template', 'veryfy-user');
+      form.append('v:userName', `steve`);
+      form.append('v:code', `stevecode`);
+      form.append('v:company', `stevecompany`);
+      ...
+    ```
+
+    ```
+    // 리팩토링 까지 완료
+    export class MailService {
+      constructor(
+        @Inject(CONFIG_OPTIONS) private readonly options: MailModuleOptions, // 커스텀 provider 주입 // private readonly configService: ConfigService,
+      ) {}
+
+      private async sendEmail(
+        subject: string,
+        template: string,
+        emailVars: EmailVar[],
+        to: string,
+      ) {
+        const form = new FormData();
+        form.append(
+          'from',
+          `Steve from SteveCompany <mailgun@${this.options.domain}>`,
+        );
+        form.append('to', to);
+        form.append('subject', subject);
+        // form.append('text', content);
+        form.append('template', template);
+        emailVars.forEach(({ key, value }) => form.append(key, value));
+        // form.append('v:userName', `steve`);
+        // form.append('v:code', `stevecode`);
+        // form.append('v:company', `stevecompany`);
+        try {
+          const response = await got(
+            `https://api.mailgun.net/v3/${this.options.domain}/messages`,
+            {
+              https: {
+                rejectUnauthorized: false,
+              },
+              headers: {
+                Authorization: `Basic ${Buffer.from(
+                  `api:${this.options.apiKey}`,
+                ).toString('base64')}`,
+                // base64 형태로 포맷해서 보내야한다
+              },
+              method: 'POST',
+              body: form,
+            },
+          );
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      sendVerificationEmail(email: string, code: string) {
+        this.sendEmail(
+          'Plz Verify Your Email',
+          'veryfy-user',
+          [
+            { key: 'v:userName', value: email },
+            { key: 'v:code', value: code },
+            { key: 'v:company', value: 'stevecompany' },
+          ],
+          email,
+        );
+      }
+    }
+
+    ```
+
+## #7 UNIT TESTING THE USER SERVICE
+
+### use.service.spec.ts 스스로 만들기
+
+- 테스트 init 세팅
+
+  ```
+  // users.service.spec.ts
+
+  import { Test } from '@nestjs/testing';
+  import { UsersService } from './users.service';
+
+  describe('UserService', () => {
+    let service: UsersService;
+
+    beforeAll(async () => {
+      // nest 기본 제공 테스트 모듈 이용
+      // 시작 전에 테스트 모듈 생성
+      const modules = await Test.createTestingModule({
+        providers: [UsersService],
+      }).compile();
+
+      // service를 밖으로 꺼내기
+      service = modules.get<UsersService>(UsersService);
+    });
+
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+
+    it.todo('createAccount');
+    it.todo('login');
+    it.todo('userProfile');
+    it.todo('findById');
+    it.todo('editProfile');
+    it.todo('verifyEmail');
+  });
+
+  ```
+
+- 경로 에러 해결
+
+  ```
+  // Cannot find module 'src/common/entities/core.entity' from 'users/entities/user.entity.ts'
+  // jest 는 ts의 경로 방식을 이해 못한다
+  // package.json
+  "jest": {
+    "rootDir": "src",
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
+    },
+    ...
+  }
+  ```
+
+- 의존성 문제 Mocking 으로 해결
+
+  ```
+  <!-- Nest can't resolve dependencies of the UsersService (?, EmailVerificationRepository, JwtService, MailService). Please make sure that the argument UserRepository at index [0] is available in the RootTestModule context. -->
+  // UserService의 dependency 문제
+  // UserService에 주입된 것들은 모듈안에 다 dependency 만들어 줘야한다
+  // 테스트용 mock 만들어줘서 해결 하도록 하자
+
+  // 이런 object 형태로하면 불변성 문제가 생겨서 반환하는 형태로 하도록 하자
+  const mockRepository = {
+    findOne: jest.fn(),
+    save: jest.fn(),
+    create: jest.fn(),
+  };
+
+  const mockJwtService = {
+    sign: jest.fn(),
+    verify: jest.fn(),
+  };
+
+  const mockMailService = {
+    sendVerification: jest.fn(),
+  };
+
+  describe('UserService', () => {
+    let service: UsersService;
+
+    beforeAll(async () => {
+      const modules = await Test.createTestingModule({
+        providers: [
+          UsersService,
+          {
+            provide: getRepositoryToken(User), // 엔티티로 레포지토리 만들어줌
+            useValue: mockRepository,
+          },
+          {
+            provide: getRepositoryToken(EmailVerification), // 엔티티로 레포지토리 만들어줌
+            useValue: mockRepository,
+          },
+          {
+            provide: JwtService,
+            useValue: mockJwtService,
+          },
+          {
+            provide: MailService,
+            useValue: mockMailService,
+          },
+        ],
+      }).compile();
+      ...
+  ```
+
+- 테스트를 위한 레포지토리 Mock으로 생성
+
+  ```
+  type MockRepository<T> = Partial<Record<keyof Repository<T>, jest.Mock>>;
+  // Repository 메서드 이름들 죄다 key로 가지고 옴
+
+  describe('UserService', () => {
+    ...
+    let usersRepository: MockRepository<User>;
+
+    beforeAll(async () => {
+      ...
+      usersRepository = modules.get(getRepositoryToken(User));
+    });
+
+    ...
+
+    describe('createAccount', () => {
+      it('should fail if user exists', () => {
+        // 테스트로 하려면 있는 것처럼 속여야한다
+      });
+    });
+
+    ...
+  });
+  ```
+
+- mocking으로 테스트
+
+  ```
+  describe('createAccount', () => {
+    it('should fail if user exists', async () => {
+      // 테스트를 하려면 이미 유저가 있는 것처럼 속여야한다
+      // mock 함수의 반환 값을 테스트 용으로 교체해야한다
+
+      usersRepository.findOne.mockResolvedValue({
+        id: 1,
+        email: 'test@test.com',
+      });
+      // 이 경우 가짜 User 레포의 findOne 의 return Promise Resolve
+      // 값으로 mock 값 넣어준다
+
+      const result = await service.createAccount({
+        email: '',
+        password: '',
+        role: 1,
+      });
+      // 실행 시켜서 console.log 찍어보면 findOne이 mock 반환중
+      expect(result).toMatchObject({
+        ok: false,
+        error: '계정을 생성할수 없습니다',
+      });
+    });
+  });
+  ```
+
+- 테스트를 위한 mocking 정리
+
+  - 테스트를 위해서는 다 속여야 한다
+  - 테스트를 원하는 UserService를 가져와서 의존성 주입된 모듈이나 서비스, 레포지토리를 mock 으로 만들어내야 한다
+  - 테스트 원하는 메서드에서 사용하는 레포지토리도 mocking 하고 메서드도 mocking하고 반환값도 mock 해야한다
+
+- coverage ignore 설정
+
+  ```
+  // package.json
+  "coveragePathIgnorePatterns": [
+      "node_modules",
+      ".entity.ts",
+      ".constants.ts"
+    ]
+  ```
+
+- createAccount 테스트 해보기
+
+  ```
+  // users.service.spec.ts
+
+  describe('createAccount_test', () => {
+    const createAccountArg = {
+      email: 'test@test.com',
+      password: '',
+      role: 1,
+    };
+    it('이미 계정이 존재하는 경우 테스트', async () => {
+      // 테스트를 하려면 이미 유저가 있는 것처럼 속여야한다
+      // mock 함수의 반환 값을 테스트 용으로 교체해야한다
+
+      usersRepository.findOne.mockResolvedValue({
+        id: 1,
+        email: 'test@test.com',
+      });
+      // 이 경우 가짜 User 레포의 findOne 의 return Promise Resolve
+      // 값으로 mock 값 넣어준다
+
+      const result = await service.createAccount(createAccountArg);
+      // 실행 시켜서 console.log 찍어보면 findOne이 mock 반환중
+      expect(result).toMatchObject({
+        ok: false,
+        error: '계정을 생성할수 없습니다',
+      });
+    });
+
+    it('유저 생성 테스트', async () => {
+      // 메서드 mock 데이터 설정
+      usersRepository.findOne.mockResolvedValue(undefined);
+      usersRepository.create.mockReturnValue(createAccountArg);
+      usersRepository.save.mockResolvedValue(createAccountArg);
+      verificationRepository.create.mockReturnValue({ user: createAccountArg });
+      verificationRepository.save.mockResolvedValue({ code: 'testcode' });
+
+      // 실행
+      const result = await service.createAccount(createAccountArg);
+      // 테스트
+      // return { ok: true };
+
+      expect(result).toEqual({ ok: true });
+
+      // 테스트
+      //   const user = await this.users.save(
+      //     this.users.create({ email, password, role }),
+      //   );
+      expect(usersRepository.create).toHaveBeenCalledTimes(1);
+      // 몇번 호출 되는지 확인도 가능
+      expect(usersRepository.create).toHaveBeenCalledWith(createAccountArg);
+      // 무슨 인자로 호출 됐는지
+      expect(usersRepository.save).toHaveBeenCalledTimes(1);
+      expect(usersRepository.save).toHaveBeenCalledWith(createAccountArg);
+
+      // 테스트
+      // const verification = await this.emailVerification.save(
+      //     this.emailVerification.create({
+      //       user,
+      //     }),
+      //   );
+      expect(verificationRepository.create).toHaveBeenCalledTimes(1);
+      expect(verificationRepository.create).toHaveBeenCalledWith({
+        user: createAccountArg,
+      });
+      expect(verificationRepository.save).toHaveBeenCalledTimes(1);
+      expect(verificationRepository.save).toHaveBeenCalledWith({
+        user: createAccountArg,
+      });
+
+      // 테스트
+      //   this.mailService.sendVerificationEmail(user.email, verification.code);
+      expect(mailService.sendVerificationEmail).toHaveBeenCalledTimes(1);
+      expect(mailService.sendVerificationEmail).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+      );
+    });
+
+    it('에러 처리 테스트', async () => {
+      usersRepository.findOne.mockRejectedValue(new Error());
+      const result = await service.createAccount(createAccountArg);
+      expect(result).toEqual({ ok: false, error: '계정을 생성할수 없습니다' });
+    });
+  });
+  ```
+
+- mock 유저 만들어서 테스트 진행
+  ```
+  // 테스트 라인
+  <!-- const user = await this.users.findOne(
+        { email },
+        { select: ['id', 'password'] },
+      );
+      ...
+      const passwordCorrect = await user.checkPassword(password);
+      if (!passwordCorrect) {
+        return {
+          ok: false,
+          error: '틀린 비밀번호',
+        };
+      } -->
+  it('비밀번호 틀린 경우 테스트', async () => {
+      // 이런 식으로도 mock 형성 가능
+      const mockedUser = {
+        id: 1,
+        checkPassword: jest.fn(() => Promise.resolve(false)),
+      };
+      usersRepository.findOne.mockResolvedValue(mockedUser);
+      const result = await service.login(loginArgs);
+      expect(result).toEqual({ ok: false, error: '틀린 비밀번호' });
+    });
+  ```
+
+## #8 UNIT TESTING JWT AND MAIL
+
+- spyOn으로 mock 대체 하기
+
+  ```
+  // mail.service.spec.ts
+
+  describe('sendVerificationEmail', () => {
+    ...
+      jest.spyOn(service, 'sendEmail').mockImplementation(async () => {});
+      // 테스트를 위해서 sendEmail을 mock으로 만들어도 되지만
+      // 이 경우 sendEmail을 테스트 할수가 없음
+      // mock을 못만드는 경우는 spyOn을 쓰면 된다
+      // sendEmail을 중간에 가로채서 콜백 함수로 바꾼다
+
+      ...
+      expect(service.sendEmail).toHaveBeenCalledTimes(1);
+      ...
+    });
+  });
+  ```
+
+- npm module mock 하기
+
+  ```
+  jest.mock('jsonwebtoken', () => {
+    return {
+      sign: jest.fn(() => 'TOKEN'),
+      verify: jest.fn(() => ({ id: USER_ID })),
+    };
+  });
+
+  // 모듈 전체를 mock 하기
+  // npm 모듈 전체를 import 하고싶다면 npm 모듈을 import 하고 두번째 인자인 콜백함수는 필요하지 않으면 안써도 된다
+
+  import got from 'got';
+  jest.mock('got');
+
+  // 데이터 조작을 하고싶으면 spyOn 써서 하면된다
+  jest.spyOn(got, 'post').mockImplementation(() => {
+        throw new Error();
+      });
+
+  import * as FormData from 'form-data';
+  jest.mock('form-data');
+
+  const formSpy = jest.spyOn(FormData.prototype, 'append');
+  // append는 new로 인스턴스 만든 후만 이용가능
+  // prototype을 spyOn 하자
+  //   const form = new FormData();
+  //     form.append(
+  //     'from',
+  //     `Steve from SteveCompany <mailgun@${this.options.domain}>`,
+  //     );
+
+  ```
+
+- coverage 폴더에 index.html 실행 시켜보면 html화면으로 coverage 보여준다
+
+## #9 USER MODULE E2E
+
+### init 설정
+
+- ts방식 경로 에러 해결
+
+  ```
+  // jest-e2e.json
+
+  {
+    ...
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/../src/$1"
+    }
+    // 한번 밖으로 나가서 src 찾아야 된다
+  }
+  ```
+
+- db error
+
+  ```
+  // .env.test 만들어 준다
+  DB_HOST=localhost
+  DB_PORT=5432
+  DB_USERNAME=stevesung
+  DB_PASSWORD=12345
+  DB_DATABASE=nuber-eats-test
+  PRIVATE_KEY=testKey
+  MAILGUN_API_KEY=...
+  MAILGUN_DOMAIN=...
+  MAILGUN_FROM_EMAIL=good@good.com
+
+  // 테스트용 db도 nuber-eats-test 이름으로 postico 가서 만들어준다
+  ```
+
+- Jest did not exit one second after the test run has completed.
+
+  ```
+  // 테스트 종료 후
+  // jest 종료 시켜줘야 한다
+  // db drop 시켜야한다
+
+  afterAll(async () => {
+    await getConnection().dropDatabase();
+    app.close();
+  });
+  ```
+
+### e2e로 resolver 메서드 테스트
+
+- createAccount 테스트
+
+  ```
+  describe('createAccount', () => {
+      const EMAIL = 'test@test,com';
+      it('계정 생성 테스트', () => {
+        return request(app.getHttpServer()) // supertest 이용
+          .post(GRAPHQL_ENDPOINT)
+          .send({
+            // http에서 grapqhql 보내는 방식으로 넣어서 query 로 요청
+            query: `mutation{
+                  createAccount(input:{
+                    email:"${EMAIL}",
+                    password:"123",
+                    role:Delivery
+                  }){
+                    ok,
+                    error
+                  }
+                }`,
+            // `` 쓰면 행 변환 쓸수있음
+          })
+          .expect(200)
+          .expect((res) => {
+            expect(res.body.data.createAccount.ok).toBe(true);
+            expect(res.body.data.createAccount.error).toBe(null);
+          });
+      });
+      // 위에서 이미 생성했으므로 아래서는 실패해야됨
+      it('계정 생성 실패하는 경우 테스트', () => {
+        return request(app.getHttpServer()) // supertest 이용
+          .post(GRAPHQL_ENDPOINT)
+          .send({
+            // http에서 grapqhql 보내는 방식으로 넣어서 query 로 요청
+            query: `mutation{
+                  createAccount(input:{
+                    email:"${EMAIL}",
+                    password:"123",
+                    role:Delivery
+                  }){
+                    ok,
+                    error
+                  }
+                }`,
+            // `` 쓰면 행 변환 쓸수있음
+          })
+          .expect(200)
+          .expect((res) => {
+            // toBe는 완똑 해야되고 toEqual은 expect.any(String) 가능
+            expect(res.body.data.createAccount.ok).toBe(false);
+            expect(res.body.data.createAccount.error).toEqual(
+              '계정을 생성할수 없습니다',
+            );
+          });
+      });
+    });
+  ```
+
+- e2e 요청시 http 헤더 변경
+  ```
+  // set 메서드 이용
+  request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .set('X-JWT', jwtToken)
+        .send({
+          query: `
+          {
+            me {
+              email
+            }
+          }
+        `,
+        })
+        .expect(200)
+  ```
+- e2e 에서 레포지토리 쓰기
+
+  ```
+  let usersRepository: Repository<User>;
+
+  beforeAll(async () => {
+   ....
+    usersRepository = module.get<Repository<User>>(getRepositoryToken(User));
+    ...
+  });
+
+  describe('userProfile', () => {
+    let userId: number;
+    beforeAll(async () => { // 안에서 또 beforeAll 해서 찾아옴
+      const [user] = await usersRepository.find();
+      userId = user.id;
+    });
+    it("should see a user's profile", () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .set('X-JWT', jwtToken)
+        .send({
+          query: `
+        {
+          userProfile(userId:${userId}){
+            ok
+            error
+            user {
+              id
+            }
+          }
+        }
+        `,
+        })
+        .expect(200)
+    // 위 처럼 안하고 어짜피 하나니까 userId 1로 하고 해도된다
+  ```

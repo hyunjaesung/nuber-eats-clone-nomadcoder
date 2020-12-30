@@ -1,4 +1,10 @@
-import { Module } from '@nestjs/common';
+import {
+  Module,
+  NestModule,
+  MiddlewareConsumer,
+  RequestMapping,
+  RequestMethod,
+} from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
@@ -6,6 +12,12 @@ import * as Joi from 'joi'; // * 는 있는거 모두 import 하는거라 export
 import { UsersModule } from './users/users.module';
 import { CommonModule } from './common/common.module';
 import { User } from './users/entities/user.entity';
+import { JwtModule } from './jwt/jwt.module';
+import { JwtMiddleware } from './jwt/jwt.middleware';
+import { AuthModule } from './auth/auth.module';
+import { EmailVerification } from './users/entities/emailVerification.entity';
+import { MailModule } from './mail/mail.module';
+
 @Module({
   // 그래프 QL 설정
   // https://docs.nestjs.com/graphql/quick-start
@@ -25,6 +37,7 @@ import { User } from './users/entities/user.entity';
     GraphQLModule.forRoot({
       autoSchemaFile: true, // code First
       // join(process.cwd(), 'src/schema.gql') 로하면 파일생성
+      context: ({ req }) => ({ user: req['user'] }),
     }),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -32,13 +45,17 @@ import { User } from './users/entities/user.entity';
       ignoreEnvFile: process.env.NODE_ENV === 'prod',
       validationSchema: Joi.object({
         // env 값 검증
-        NODE_ENV: Joi.string().valid('dev', 'prod'),
+        NODE_ENV: Joi.string().valid('dev', 'prod', 'test'),
         // NODE_ENV 유효성 검사해서 더높은 보안 제공
         DB_HOST: Joi.string(),
         DB_PORT: Joi.string(),
         DB_USERNAME: Joi.string(),
         DB_PASSWORD: Joi.string(),
         DB_DATABASE: Joi.string(),
+        PRIVATE_KEY: Joi.string(),
+        MAILGUN_API_KEY: Joi.string(),
+        MAILGUN_DOMAIN: Joi.string(),
+        MAILGUN_FROM_EMAIL: Joi.string(),
       }),
     }),
     TypeOrmModule.forRoot({
@@ -49,13 +66,38 @@ import { User } from './users/entities/user.entity';
       password: process.env.DB_PASSWORD, // 로컬호스트에서는 안써도된다
       database: process.env.DB_DATABASE,
       synchronize: process.env.NODE_ENV !== 'prod', // 어플리케이션 상태로 DB migration
-      logging: process.env.NODE_ENV !== 'prod',
-      entities: [User],
+      logging:
+        process.env.NODE_ENV !== 'prod' && process.env.NODE_ENV !== 'test',
+      entities: [User, EmailVerification],
+    }),
+    JwtModule.forRoot({
+      privateKey: process.env.PRIVATE_KEY,
     }),
     UsersModule,
-    CommonModule,
+    // CommonModule,
+    AuthModule,
+    MailModule.forRoot({
+      apiKey: process.env.MAILGUN_API_KEY,
+      domain: process.env.MAILGUN_DOMAIN,
+      fromEmail: process.env.MAILGUN_FROM_EMAIL,
+    }),
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  // 루트모듈에 미들웨어 설치
+  // 미들웨어는 어떤 모듈이나 설치 가능
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(JwtMiddleware).forRoutes({
+      path: '/graphql',
+      method: RequestMethod.POST,
+    });
+    // 특정 루트 특정 메서드 미들웨어 지정 가능
+    // consumer.apply(JwtMiddleware).exclude({
+    //   path: '/블라블라',
+    //   method: RequestMethod.ALL,
+    // });
+    // 제외도 가능
+  }
+}
