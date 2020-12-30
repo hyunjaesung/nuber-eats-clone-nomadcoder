@@ -1663,6 +1663,8 @@ nest g mo jwt
 
 ## #9 USER MODULE E2E
 
+### init 설정
+
 - ts방식 경로 에러 해결
 
   ```
@@ -1702,7 +1704,66 @@ nest g mo jwt
   // db drop 시켜야한다
 
   afterAll(async () => {
-    getConnection().dropDatabase();
+    await getConnection().dropDatabase();
     app.close();
   });
+  ```
+
+### e2e로 resolver 메서드 테스트
+
+- createAccount 테스트
+  ```
+  describe('createAccount', () => {
+      const EMAIL = 'test@test,com';
+      it('계정 생성 테스트', () => {
+        return request(app.getHttpServer()) // supertest 이용
+          .post(GRAPHQL_ENDPOINT)
+          .send({
+            // http에서 grapqhql 보내는 방식으로 넣어서 query 로 요청
+            query: `mutation{
+                  createAccount(input:{
+                    email:"${EMAIL}",
+                    password:"123",
+                    role:Delivery
+                  }){
+                    ok,
+                    error
+                  }
+                }`,
+            // `` 쓰면 행 변환 쓸수있음
+          })
+          .expect(200)
+          .expect((res) => {
+            expect(res.body.data.createAccount.ok).toBe(true);
+            expect(res.body.data.createAccount.error).toBe(null);
+          });
+      });
+      // 위에서 이미 생성했으므로 아래서는 실패해야됨
+      it('계정 생성 실패하는 경우 테스트', () => {
+        return request(app.getHttpServer()) // supertest 이용
+          .post(GRAPHQL_ENDPOINT)
+          .send({
+            // http에서 grapqhql 보내는 방식으로 넣어서 query 로 요청
+            query: `mutation{
+                  createAccount(input:{
+                    email:"${EMAIL}",
+                    password:"123",
+                    role:Delivery
+                  }){
+                    ok,
+                    error
+                  }
+                }`,
+            // `` 쓰면 행 변환 쓸수있음
+          })
+          .expect(200)
+          .expect((res) => {
+            // toBe는 완똑 해야되고 toEqual은 expect.any(String) 가능
+            expect(res.body.data.createAccount.ok).toBe(false);
+            expect(res.body.data.createAccount.error).toEqual(
+              '계정을 생성할수 없습니다',
+            );
+          });
+      });
+    });
   ```

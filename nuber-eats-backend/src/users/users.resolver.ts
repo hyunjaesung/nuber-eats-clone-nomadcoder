@@ -21,12 +21,14 @@ export class UsersResolver {
   hi() {
     return true;
   }
+
   @Mutation((_) => CreateAccountOutput)
   async createAccount(
     @Args('input') createAccountInput: CreateAccountInput,
   ): Promise<CreateAccountOutput> {
     return await this.usersService.createAccount(createAccountInput);
   }
+
   @Mutation((_) => LoginOutput)
   async login(@Args('input') loginInput: LoginInput): Promise<LoginOutput> {
     return await this.usersService.login(loginInput);
