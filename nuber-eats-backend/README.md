@@ -1712,6 +1712,7 @@ nest g mo jwt
 ### e2e로 resolver 메서드 테스트
 
 - createAccount 테스트
+
   ```
   describe('createAccount', () => {
       const EMAIL = 'test@test,com';
@@ -1766,4 +1767,59 @@ nest g mo jwt
           });
       });
     });
+  ```
+
+- e2e 요청시 http 헤더 변경
+  ```
+  // set 메서드 이용
+  request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .set('X-JWT', jwtToken)
+        .send({
+          query: `
+          {
+            me {
+              email
+            }
+          }
+        `,
+        })
+        .expect(200)
+  ```
+- e2e 에서 레포지토리 쓰기
+
+  ```
+  let usersRepository: Repository<User>;
+
+  beforeAll(async () => {
+   ....
+    usersRepository = module.get<Repository<User>>(getRepositoryToken(User));
+    ...
+  });
+
+  describe('userProfile', () => {
+    let userId: number;
+    beforeAll(async () => { // 안에서 또 beforeAll 해서 찾아옴
+      const [user] = await usersRepository.find();
+      userId = user.id;
+    });
+    it("should see a user's profile", () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .set('X-JWT', jwtToken)
+        .send({
+          query: `
+        {
+          userProfile(userId:${userId}){
+            ok
+            error
+            user {
+              id
+            }
+          }
+        }
+        `,
+        })
+        .expect(200)
+    // 위 처럼 안하고 어짜피 하나니까 userId 1로 하고 해도된다
   ```

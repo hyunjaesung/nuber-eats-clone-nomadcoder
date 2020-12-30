@@ -49,7 +49,8 @@ export class User extends CoreEntity {
   }
 
   @Field((type) => String)
-  @Column()
+  @Column({ unique: true })
+  // Marks column as unique column (creates unique constraint).
   @IsEmail()
   email: string;
 
