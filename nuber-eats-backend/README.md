@@ -1370,6 +1370,7 @@ nest g mo jwt
   // UserService에 주입된 것들은 모듈안에 다 dependency 만들어 줘야한다
   // 테스트용 mock 만들어줘서 해결 하도록 하자
 
+  // 이런 object 형태로하면 불변성 문제가 생겨서 반환하는 형태로 하도록 하자
   const mockRepository = {
     findOne: jest.fn(),
     save: jest.fn(),

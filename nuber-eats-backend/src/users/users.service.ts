@@ -145,7 +145,7 @@ export class UsersService {
     } catch (error) {
       return {
         ok: false,
-        error,
+        error: '찾을 수 없는 계정 입니다',
       };
     }
 
