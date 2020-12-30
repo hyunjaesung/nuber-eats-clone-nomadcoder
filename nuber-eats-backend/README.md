@@ -1601,3 +1601,57 @@ nest g mo jwt
       expect(result).toEqual({ ok: false, error: '틀린 비밀번호' });
     });
   ```
+- spyOn으로 mock 대체 하기
+
+  ```
+  // mail.service.spec.ts
+
+  describe('sendVerificationEmail', () => {
+    ...
+      jest.spyOn(service, 'sendEmail').mockImplementation(async () => {});
+      // 테스트를 위해서 sendEmail을 mock으로 만들어도 되지만
+      // 이 경우 sendEmail을 테스트 할수가 없음
+      // mock을 못만드는 경우는 spyOn을 쓰면 된다
+      // sendEmail을 중간에 가로채서 콜백 함수로 바꾼다
+
+      ...
+      expect(service.sendEmail).toHaveBeenCalledTimes(1);
+      ...
+    });
+  });
+  ```
+
+- npm module mock 하기
+
+  ```
+  jest.mock('jsonwebtoken', () => {
+    return {
+      sign: jest.fn(() => 'TOKEN'),
+      verify: jest.fn(() => ({ id: USER_ID })),
+    };
+  });
+
+  // 모듈 전체를 mock 하기
+  // npm 모듈 전체를 import 하고싶다면 npm 모듈을 import 하고 두번째 인자인 콜백함수는 필요하지 않으면 안써도 된다
+
+  import got from 'got';
+  jest.mock('got');
+
+  // 데이터 조작을 하고싶으면 spyOn 써서 하면된다
+  jest.spyOn(got, 'post').mockImplementation(() => {
+        throw new Error();
+      });
+
+  import * as FormData from 'form-data';
+  jest.mock('form-data');
+
+  const formSpy = jest.spyOn(FormData.prototype, 'append');
+  // append는 new로 인스턴스 만든 후만 이용가능
+  // prototype을 spyOn 하자
+  //   const form = new FormData();
+  //     form.append(
+  //     'from',
+  //     `Steve from SteveCompany <mailgun@${this.options.domain}>`,
+  //     );
+
+  ```

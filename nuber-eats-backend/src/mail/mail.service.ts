@@ -23,12 +23,12 @@ export class MailService {
   //   템플릿 이용시
   //   -F template='veryfy-user' \
   //   -F v:변수이름='변수값'
-  private async sendEmail(
+  async sendEmail(
     subject: string,
     template: string,
     emailVars: EmailVar[],
     to: string,
-  ) {
+  ): Promise<boolean> {
     const form = new FormData();
     form.append(
       'from',
@@ -43,7 +43,7 @@ export class MailService {
     // form.append('v:code', `stevecode`);
     // form.append('v:company', `stevecompany`);
     try {
-      const response = await got(
+      await got.post(
         `https://api.mailgun.net/v3/${this.options.domain}/messages`,
         {
           https: {
@@ -55,12 +55,12 @@ export class MailService {
             ).toString('base64')}`,
             // base64 형태로 포맷해서 보내야한다
           },
-          method: 'POST',
           body: form,
         },
       );
+      return true;
     } catch (error) {
-      console.log(error);
+      return false;
     }
   }
 
