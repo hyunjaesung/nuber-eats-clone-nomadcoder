@@ -1,4 +1,4 @@
-import { Entity, Column, BeforeInsert, BeforeUpdate } from 'typeorm';
+import { Entity, Column, BeforeInsert, BeforeUpdate, OneToMany } from 'typeorm';
 import { CoreEntity } from 'src/common/entities/core.entity';
 import {
   ObjectType,
@@ -9,6 +9,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from '@nestjs/common';
 import { IsEmail, IsString, IsEnum, IsBoolean } from 'class-validator';
+import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
 
 enum UserRole {
   Client,
@@ -21,7 +22,7 @@ registerEnumType(UserRole, {
 });
 
 // 순서대로 graphQLScheme Entity 작업
-@InputType({ isAbstract: true }) // DTO 작업 맨위에 있어야한다
+@InputType('UserInputType', { isAbstract: true }) // DTO 작업 맨위에 있어야한다
 @ObjectType()
 @Entity()
 export class User extends CoreEntity {
@@ -73,4 +74,8 @@ export class User extends CoreEntity {
   @Field((type) => Boolean)
   @IsBoolean()
   verified: boolean;
+
+  @Field((type) => [Restaurant])
+  @OneToMany((type) => Restaurant, (restaurant) => restaurant.owner)
+  restaurants: Restaurant[];
 }

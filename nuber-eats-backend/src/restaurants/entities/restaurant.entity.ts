@@ -3,8 +3,10 @@ import { IsString, Length } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Category } from './category.entity';
+import { User } from 'src/users/entities/user.entity';
 
-@InputType({ isAbstract: true })
+@InputType('RestaurantInputType', { isAbstract: true })
+// Type 이름 Restaurant로 겹치는 문제때문에 따로 이름 설정
 // 스키마에는 추가안하고 타입 하나 더쓰고 싶을때
 @ObjectType() // Object Type 리턴 만들어줌 Resolver로 연결
 @Entity()
@@ -32,7 +34,14 @@ export class Restaurant {
   address: string;
 
   // relations
-  @Field((type) => Category)
-  @ManyToOne((type) => Category, (category) => category.restaurants)
+  @Field((type) => Category, { nullable: true })
+  @ManyToOne((type) => Category, (category) => category.restaurants, {
+    nullable: true,
+    onDelete: 'SET NULL', // 카테고리가 지워지더라도 레스토랑이 지워지면 안된다
+  })
   category: Category;
+
+  @Field((type) => User)
+  @ManyToOne((type) => User, (user) => user.restaurants)
+  owner: User;
 }

@@ -8,6 +8,7 @@ import { CONFIG_OPTIONS } from 'src/common/common.constant';
 export class JwtModule {
   static forRoot(options: JwtModuleOptions): DynamicModule {
     // forRoot는 potato
+    console.log('opititititon', options);
     return {
       module: JwtModule,
       exports: [JwtService],

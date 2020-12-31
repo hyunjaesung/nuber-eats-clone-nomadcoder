@@ -18,6 +18,7 @@ import { EmailVerification } from './users/entities/emailVerification.entity';
 import { MailModule } from './mail/mail.module';
 import { Restaurant } from './restaurants/entities/restaurant.entity';
 import { Category } from './restaurants/entities/category.entity';
+import { RestaurantsModule } from './restaurants/restaurants.module';
 
 @Module({
   // 그래프 QL 설정
@@ -76,6 +77,7 @@ import { Category } from './restaurants/entities/category.entity';
     }),
     UsersModule,
     // CommonModule,
+    RestaurantsModule,
     AuthModule,
     MailModule.forRoot({
       apiKey: process.env.MAILGUN_API_KEY,

@@ -1823,3 +1823,27 @@ nest g mo jwt
         .expect(200)
     // 위 처럼 안하고 어짜피 하나니까 userId 1로 하고 해도된다
   ```
+
+## #10 Restaurant
+
+- Many Releations
+
+```
+// category
+@OneToMany((type) => Restaurant, (restaurant) => restaurant.category)
+// 두번째 인자에는 역행해서 써주기
+restaurants: Restaurant[];
+
+// restaurant
+@ManyToOne((type) => Category, (category) => category.restaurants)
+category: Category;
+```
+
+```
+// 하나가 지워져도 다른게 지워지면 안되는 경우
+@ManyToOne((type) => Category, (category) => category.restaurants, {
+    nullable: true,
+    onDelete: 'SET NULL', // 카테고리가 지워지더라도 레스토랑이 지워지면 안된다
+  })
+  category: Category;
+```
