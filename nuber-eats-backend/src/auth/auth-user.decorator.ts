@@ -1,7 +1,7 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 
-// 커스텀 데코레이터 만들기
+// 커스텀 param 데코레이터 만들기
 export const AuthUser = createParamDecorator(
   (data: unknown, context: ExecutionContext) => {
     const gqlContext = GqlExecutionContext.create(context).getContext();

@@ -958,7 +958,10 @@ nest g mo jwt
   me(@Context() context) {}
   ```
 
-- 커스텀 데코레이터를 이용한 설정
+- 커스텀 param 데코레이터를 이용한 설정
+
+  - param decorator
+    - https://docs.nestjs.com/custom-decorators
 
   ```
   // 역할 따라 다르게 쿼리 데이터 전달 할수 있는 장점 있다
@@ -1847,3 +1850,131 @@ category: Category;
   })
   category: Category;
 ```
+
+## Role에 따라 Authorization
+
+- Authorization은 허가 Authentication은 인증
+
+- metaData 이용으로 Authorization
+
+  ```
+  // restaurants.resolver.ts
+  enum UserRole {
+    Client,
+    Owner,
+    Delivery,
+  }
+
+  @Mutation((returns) => CreateRestaurantOutput)
+  @SetMetadata("allowedRole", UserRole.Owner) // Metadata로 구분, metaData 설정시 Reflector 이용 해서 사용가능
+
+  async createRestaurant(
+    @AuthUser() authUser: User,
+    @Args('input') createRestaurantInput: CreateRestaurantInput,
+  ): Promise<CreateRestaurantOutput> {
+    ...
+  }
+  ```
+
+- 나만의 decorator 만들어서 간단하게
+
+  ```
+  // user.entity
+  export enum UserRole {
+    Client = 'Client',
+    Owner = 'Owner',
+    Delivery = 'Delivery',
+  }
+
+  // role.decorator.ts
+  type AllowedRole = keyof typeof UserRole | 'Any';
+
+  export const Role = (roles: AllowedRole[]) => SetMetadata('allowedRole', roles);
+
+  // restaurant.resolver.ts
+  @Resolver((of) => Restaurant)
+  export class RestaurantResolver {
+    constructor(private readonly restaurantService: RestaurantService) {}
+    @Mutation((returns) => CreateRestaurantOutput)
+    @Role(['Owner'])
+    async createRestaurant(
+      @AuthUser() authUser: User,
+      @Args('input') createRestaurantInput: CreateRestaurantInput,
+    ): Promise<CreateRestaurantOutput> {
+      ...
+    }
+  }
+  ```
+
+- 글로벌 가드 설정 및 요청마다 메타 데이터 설정
+
+  ```
+  // auth.module 글로벌 가드 설정
+  @Module({
+    providers: [{ provide: APP_GUARD, useClass: AuthGuard }],
+    // guard를 앱 전체에서 모든 req에 사용하고싶다면 APP_GUARD 상수 사용
+  })
+
+  // 기존 인증 했던 부분들 커스텀 decorator로 메타 데이터 설정
+  // user.resolver
+  ...
+  @Query((returns) => User)
+  // @UseGuards(AuthGuard) // 가드 적용 false 리턴이면 해당 쿼리 request 중단
+  @Role(['Any'])
+  // 커스텀 데코레이터로 meta 데이터 설정, meta데이터 없다면 글로벌 guard에서 로그인 필요없는 것으로 구분
+  me(@AuthUser() authedUser: User) {
+    return authedUser;
+  }
+
+  // @UseGuards(AuthGuard)
+  @Role(['Any'])
+  @Query((returns) => UserProfileOutput)
+  async userProfile(
+    @Args() userProfileInput: UserProfileInput,
+  ): Promise<UserProfileOutput> {
+    return await this.usersService.findById(userProfileInput.userId);
+  }
+  ...
+  ```
+
+- guard와 meta데이터로 요청 인증
+
+  ```
+  @Injectable()
+  export class AuthGuard implements CanActivate {
+    // CanActivate 은 return true면
+    // request 계속 진행 시키고
+    // 아니면 request 중단 시킴
+
+    constructor(private readonly reflector: Reflector) {}
+
+    canActivate(context: ExecutionContext) {
+      const roles = this.reflector.get<AllowedRoles>(
+        'allowedRole',
+        context.getHandler(),
+      ); // 메타 데이터 읽어오기
+
+      if (!roles) {
+        // resolver에 role 메타데이터 설정 안되있으면 해당 req 허가
+        // 예 로그인 필요없는 경우의 요청들
+        return true;
+      }
+
+      const gqlContext = GqlExecutionContext.create(context).getContext();
+      // http 요청과 gql 형태 달라서 변형
+      const user: User = gqlContext['user'];
+      if (!user) {
+        // 유저 데이터가 없는 경우 req 거부
+        return false;
+      }
+
+      if (roles.includes('Any')) {
+        // Any 면 모두 허가
+        return true;
+      }
+
+      return roles.includes(user.role);
+      // 메타 데이터와 user의 role이 일치하는 경우만 true 리턴
+    }
+  }
+  ```
