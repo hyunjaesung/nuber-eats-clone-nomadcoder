@@ -142,6 +142,7 @@ app.useGlobalPipes(new ValidationPipe());
 ### TypeORM
 
 - https://typeorm.io/#/
+- 데코레이터 : https://typeorm.io/#/decorator-reference
 - TypeORM 을 쓰면 타입을 써주면 직접 SQL쓰지 않아도 어플리케이션과 DB 소통하게 도와준다
 - Typescript에 친화적
 - 다른 ORM보다 좀 더 포괄적
@@ -1975,6 +1976,47 @@ category: Category;
 
       return roles.includes(user.role);
       // 메타 데이터와 user의 role이 일치하는 경우만 true 리턴
+    }
+  }
+  ```
+
+### relation id
+
+- https://typeorm.io/#/decorator-reference/relationid
+- if you have a many-to-one category in your Post entity, you can have a new category id by marking a new property with @RelationId
+
+```
+// restaurant.entity
+
+@Field((type) => User)
+@ManyToOne((type) => User, (user) => user.restaurants, {
+  onDelete: 'CASCADE',
+})
+owner: User;
+
+// 확실하게 관계 표명
+// loadRelationId나 relations 옵션으로 find 안해도 자동으로 relation id 가져다 준다
+@RelationId((restaurant: Restaurant) => restaurant.owner)
+ownerId: number;
+```
+
+### @EntityRepository
+
+- https://typeorm.io/#/decorator-reference/entityrepository
+- 커스텀 repository 만들기
+  ```
+  @EntityRepository(Category)
+  export class CategoryRepository extends Repository<Category> {
+    async getOrCreate(name: string): Promise<Category> {
+      const categoryName = name.trim().toLowerCase();
+      const categorySlug = categoryName.replace(/ /g, '-');
+      let category = await this.findOne({ slug: categorySlug });
+      if (!category) {
+        category = await this.save(
+          this.create({ slug: categorySlug, name: categoryName }),
+        );
+      }
+      return category;
     }
   }
   ```

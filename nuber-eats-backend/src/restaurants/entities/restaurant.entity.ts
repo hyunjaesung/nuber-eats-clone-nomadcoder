@@ -1,7 +1,13 @@
 import { ObjectType, Field, InputType } from '@nestjs/graphql';
 import { IsString, Length } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  RelationId,
+} from 'typeorm';
 import { Category } from './category.entity';
 import { User } from 'src/users/entities/user.entity';
 
@@ -46,4 +52,9 @@ export class Restaurant {
     onDelete: 'CASCADE',
   })
   owner: User;
+
+  // 확실하게 관계 표명
+  // loadRelationId나 relations 옵션으로 find 안해도 자동으로 relation id 가져다 준다
+  @RelationId((restaurant: Restaurant) => restaurant.owner)
+  ownerId: number;
 }
