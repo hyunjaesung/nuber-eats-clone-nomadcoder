@@ -2039,3 +2039,20 @@ ownerId: number;
     return this.restaurantService.countRestaurants(category);
   }
   ```
+
+### typeOrm이 메서드로 지원하지 않는 SQL 문 만날 경우
+
+```
+const [restaurants, totalResults] = await this.restaurants.findAndCount({
+        where: {
+          name: Raw((name) => `${name} ILIKE '%${query}%'`),
+          // sql Like 문
+          // typeOrm에는 대소문자 구분없음을 지원 안해주고 있다
+          // ILIKE 는 Insensitive Like
+          // 이런 경우 DB에 SQL문을 이용해서 직접 요청 해야한다
+          // `${name} ILIKE '%${query}%'` 직접 SQL문 입력
+        },
+        skip: (page - 1) * 25,
+        take: 25,
+      });
+```

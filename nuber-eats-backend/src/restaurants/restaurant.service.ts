@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Restaurant } from './entities/restaurant.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like, Raw } from 'typeorm';
 import {
   CreateRestaurantOutput,
   CreateRestaurantInput,
@@ -20,6 +20,11 @@ import {
 import { AllCategoriesOutput } from './dtos/all-categories.dto';
 import { CategoryInput, CategoryOutput } from './dtos/category.dto';
 import { RestaurantsInput, RestaurantsOutput } from './dtos/restarants.dto';
+import {
+  SearchRestaurantInput,
+  SearchRestaurantOutput,
+} from './dtos/search-restaurant.dto';
+import { RestaurantInput, RestaurantOutput } from './dtos/restaurant.dto';
 
 @Injectable()
 export class RestaurantService {
@@ -199,6 +204,60 @@ export class RestaurantService {
         ok: false,
         error: 'Could not load restaurants',
       };
+    }
+  }
+
+  async findRestaurantById({
+    restaurantId,
+  }: RestaurantInput): Promise<RestaurantOutput> {
+    try {
+      const restaurant = await this.restaurants.findOne(restaurantId);
+      if (!restaurant) {
+        return {
+          ok: false,
+          error: 'Restaurant not found',
+        };
+      }
+      return {
+        ok: true,
+        restaurant,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: 'Could not find restaurant',
+      };
+    }
+  }
+
+  async searchRestaurantByName({
+    query,
+    page,
+  }: SearchRestaurantInput): Promise<SearchRestaurantOutput> {
+    try {
+      const [restaurants, totalResults] = await this.restaurants.findAndCount({
+        where: {
+          name: Raw((name) => `${name} ILIKE '%${query}%'`),
+          // sql Like 문
+          // typeOrm에는 대소문자 구분없음을 지원 안해주고 있다
+          // ILIKE 는 Insensitive Like
+          // 이런 경우 DB에 SQL문을 이용해서 직접 요청 해야한다
+          // `${name} ILIKE '%${query}%'` 직접 SQL문 입력
+        },
+        skip: (page - 1) * 25,
+        take: 25,
+      });
+      // For those who use MySQL, LIKE is already case-insensitive.
+      // If you want to search case-sensitively, you have to use
+      // BINARY. ex) Raw(name => `${name} LIKE BINARY '%${query}%'`)
+      return {
+        ok: true,
+        restaurants,
+        totalResults,
+        totalPages: Math.ceil(totalResults / 25),
+      };
+    } catch {
+      return { ok: false, error: 'Could not search for restaurants' };
     }
   }
 }
