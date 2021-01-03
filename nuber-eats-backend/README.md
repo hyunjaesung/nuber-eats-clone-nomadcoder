@@ -2020,3 +2020,22 @@ ownerId: number;
     }
   }
   ```
+
+### Parent Decorator
+
+- GraphQL에서 Parent는 상위 항목 의미
+  ```
+  {
+    parent{
+      children
+    }
+  }
+  ```
+- @Parent쓰면 상위 항목 이름 가지고 온다
+  ```
+  @ResolveField((type) => Int)
+  restaurantCount(@Parent() category: Category): Promise<number> {
+    // @Parent 쓰면 restaurant count 필드의 부모인 category를 리턴해준다
+    return this.restaurantService.countRestaurants(category);
+  }
+  ```
