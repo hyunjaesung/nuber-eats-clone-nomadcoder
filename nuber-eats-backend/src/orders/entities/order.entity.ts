@@ -10,6 +10,8 @@ import { Dish } from 'src/restaurants/entities/dish.entity';
 import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Column, Entity, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import { OrderItem } from './order-item.entity';
+import { IsNumber, IsEnum } from 'class-validator';
 
 export enum OrderStatus {
   Pending = 'Pending',
@@ -38,28 +40,30 @@ export class Order extends CoreEntity {
   })
   driver?: User;
 
-  @Field((type) => Restaurant)
+  @Field((type) => Restaurant, { nullable: true })
   @ManyToOne((type) => Restaurant, (restaurant) => restaurant.orders, {
     onDelete: 'SET NULL',
     nullable: true,
   })
-  restaurant: Restaurant;
+  restaurant?: Restaurant;
 
-  @Field((type) => [Dish])
-  @ManyToMany((type) => Dish)
+  @Field((type) => [OrderItem])
+  @ManyToMany((type) => OrderItem)
   // Many-to-many is a relation
   // where A contains multiple instances of B,
   // and B contain multiple instances of A
   @JoinTable()
-  // dish vs order 하면 order 가 소유하는 쪽이라 여기에 써줘야한다
-  dishes: Dish[];
+  // dish vs OrderItem 하면 order 가 소유하는 쪽이라 여기에 써줘야한다
+  items: OrderItem[];
 
-  @Column()
-  @Field((type) => Float)
-  total: number;
+  @Column({ nullable: true })
+  @Field((type) => Float, { nullable: true })
+  @IsNumber()
+  total?: number;
 
-  @Column({ type: 'enum', enum: OrderStatus })
+  @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.Pending })
   @Field((type) => OrderStatus)
+  @IsEnum(OrderStatus)
   status: OrderStatus;
 }
 

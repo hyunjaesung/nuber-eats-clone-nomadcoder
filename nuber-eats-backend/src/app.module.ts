@@ -21,6 +21,7 @@ import { Category } from './restaurants/entities/category.entity';
 import { RestaurantsModule } from './restaurants/restaurants.module';
 import { Dish } from './restaurants/entities/dish.entity';
 import { Order } from './orders/entities/order.entity';
+import { OrderItem } from './orders/entities/order-item.entity';
 
 @Module({
   // 그래프 QL 설정
@@ -72,7 +73,15 @@ import { Order } from './orders/entities/order.entity';
       synchronize: process.env.NODE_ENV !== 'prod', // 어플리케이션 상태로 DB migration
       logging:
         process.env.NODE_ENV !== 'prod' && process.env.NODE_ENV !== 'test',
-      entities: [User, EmailVerification, Restaurant, Category, Dish, Order],
+      entities: [
+        User,
+        EmailVerification,
+        Restaurant,
+        Category,
+        Dish,
+        Order,
+        OrderItem,
+      ],
     }),
     JwtModule.forRoot({
       privateKey: process.env.PRIVATE_KEY,
