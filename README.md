@@ -19,8 +19,19 @@ $ npm i @nestjs/graphql graphql-tools graphql apollo-server-express
 
 ### Code First 로 graphql 연결
 
-````
+```
 GraphQLModule.forRoot({
   autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
 }),
-````
+```
+
+# 챌린지
+
+## Day 1
+
+- What is the purpose of a decorator?
+  - 오답 : It's a function that adds types to classes or members of the class.
+  - 정답 : It's a function that adds functionality to classes or members of the class.
+- What is the difference between a framework and a library?
+  - 오답 : A library uses your code, you use the framework.
+  - 정답 : A framework uses your code, you use the library.

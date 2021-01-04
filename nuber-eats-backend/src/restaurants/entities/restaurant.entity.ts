@@ -7,9 +7,11 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   RelationId,
+  OneToMany,
 } from 'typeorm';
 import { Category } from './category.entity';
 import { User } from 'src/users/entities/user.entity';
+import { Dish } from './dish.entity';
 
 @InputType('RestaurantInputType', { isAbstract: true })
 // Type 이름 Restaurant로 겹치는 문제때문에 따로 이름 설정
@@ -57,4 +59,8 @@ export class Restaurant {
   // loadRelationId나 relations 옵션으로 find 안해도 자동으로 relation id 가져다 준다
   @RelationId((restaurant: Restaurant) => restaurant.owner)
   ownerId: number;
+
+  @Field((type) => [Dish])
+  @OneToMany((type) => Dish, (dish) => dish.restaurant)
+  menu: Dish[];
 }
