@@ -56,14 +56,14 @@ export class Restaurant {
   })
   owner: User;
 
-  @Field((type) => [Order])
-  @OneToMany((type) => Order, (order) => order.restaurant)
-  orders: Order[];
-
   // 확실하게 관계 표명
   // loadRelationId나 relations 옵션으로 find 안해도 자동으로 relation id 가져다 준다
   @RelationId((restaurant: Restaurant) => restaurant.owner)
   ownerId: number;
+
+  @Field((type) => [Order])
+  @OneToMany((type) => Order, (order) => order.restaurant)
+  orders: Order[];
 
   @Field((type) => [Dish])
   @OneToMany((type) => Dish, (dish) => dish.restaurant)
