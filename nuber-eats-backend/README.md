@@ -2056,3 +2056,57 @@ const [restaurants, totalResults] = await this.restaurants.findAndCount({
         take: 25,
       });
 ```
+
+## #11 DISH AND ORDER CRUD
+
+### @ManyToMany 와 @JoinTable
+
+- https://typeorm.io/#/decorator-reference/manytomany
+- https://en.wikipedia.org/wiki/Many-to-many_(data_model)
+- https://siyoon210.tistory.com/26
+- ManyToMany : Many-to-many is a relation where A contains multiple instances of B, and B contain multiple instances of A
+- JoinTable : Used for many-to-many relations and describes join columns of the "junction" table. Junction table is a special, separate table created automatically by TypeORM with columns referenced to the related entities. 소유 하는 쪽에 데코레이터 써줘야한다
+- ManyToMany 관계는 중간에 junction table 필요
+  - junction table에 일대다 다대일 관계로 연결 되어있다
+- 소유 하는 쪽
+  - 철수가 여러 수업을 수강한다.(O)
+  - 국어, 영어, 수학은 철수를 수용 한다.(X)
+    -> 철수가 소유
+
+```
+// order.entity.ts
+...
+@Field((type) => [Dish])
+@ManyToMany((type) => Dish)
+@JoinTable()
+// dish vs order 하면 order 가 소유하는 쪽이라 여기에 써줘야한다
+dishes: Dish[];
+...
+```
+
+### entity 작성 시 순서
+
+1. 먼저 필요한 property부터 쓰고
+2. enumType 있으면 등록하고
+3. GraphQL 스키마 작성
+
+- nullable 이면 nullable true 로
+
+4. typeOrm 스키마 작성
+
+- GraphQL이랑 크게 다르지 않는 것 column 으로
+- 관계 필요한 항목 relations 요소 작성
+
+  - orders <-> user : user 하나가 많은 order를 가질 수 있음
+    orders에선 ManyToOne
+    user에선 OneToMany
+    onDelete 옵션 user지워져도 주문이 남아있어야하니 SET NULL
+    user는 customer or driver
+
+  - orders <-> restaurant : restaurant하나가 많은 order를 가짐
+    위와 같은 과정
+
+  - orders <-> dishes : order 도 많은 dish 가질수있고 dish도 여러 order 가질수 있다
+    Own 하는 쪽에 @JoinTable() 써줘야한다
+    order 에서 테이블로 일대다 관계 형성
+    테이블 에서 dish로 다대일 관계 형성

@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from '@nestjs/common';
 import { IsEmail, IsString, IsEnum, IsBoolean } from 'class-validator';
 import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
+import { Order } from 'src/orders/entities/order.entity';
 
 export enum UserRole {
   Client = 'Client',
@@ -26,6 +27,14 @@ registerEnumType(UserRole, {
 @ObjectType()
 @Entity()
 export class User extends CoreEntity {
+  @Field((type) => [Order])
+  @OneToMany((type) => Order, (order) => order.customer)
+  orders: Order[];
+
+  @Field((type) => [Order])
+  @OneToMany((type) => Order, (order) => order.driver)
+  rides: Order[];
+
   @BeforeInsert()
   @BeforeUpdate() // 업데이트시 이거 추가해야 해당칼럼 해쉬화 된다!
   async hashPassword(): Promise<void> {
