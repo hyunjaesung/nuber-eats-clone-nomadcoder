@@ -2110,3 +2110,130 @@ dishes: Dish[];
     Own 하는 쪽에 @JoinTable() 써줘야한다
     order 에서 테이블로 일대다 관계 형성
     테이블 에서 dish로 다대일 관계 형성
+
+## #12 ORDER SUBSCRIPTIONS
+
+- SUBSCRIPTIONS
+  - resolver에서 변경 사항이나 업데이트를 수신하게 해준다
+  - 리얼타임 처리
+- graphql-subscriptions
+  - https://www.npmjs.com/package/graphql-subscriptions
+  ```
+  npm i graphql-subscriptions
+  ```
+- 설정
+
+  ```
+  // resolver.ts
+  const pubSub = new PubSub();
+  // PubSub은 Publish and Subscription
+
+  @Resolver(_ => test)
+    ...
+    @Subscription((returns) => String)
+    // 뭘 리턴하냐 에 따라 달라진다
+    readyPotatoes() {
+      // 여기선 String을 리턴하지 않고
+      // asyncIterator 를 리턴할거다
+      return pubSub.asyncIterator('hotPotatoes');
+    }
+    ...
+  ```
+
+  ```
+  // graphQL 요청
+  subscription{
+    hotPotatoes
+  }
+  // 결과, web socket 필요
+  {
+    "error": "Could not connect to websocket endpoint ws://localhost:3001/graphql. Please check if the endpoint url is correct."
+  }
+  ```
+
+  ```
+  // app.module
+  GraphQLModule.forRoot({
+      ..
+      installSubscriptionHandlers: true,
+      // 이렇게 하면 GraphQL 서버 웹소켓 기능할 수 있다
+      ...
+    }),
+  ```
+
+  ```
+  {
+    "error": {
+      "message": "Cannot read property 'user' of undefined"
+    }
+  }
+
+  GraphQLModule.forRoot({
+      ...
+      installSubscriptionHandlers: true,
+      context: ({ req }) => ({ user: req['user'] }),
+      // 여기서 나는 에러
+    }),
+
+  //
+  // Subscription 을하려는 순간 Http 를 안거치고 바로 ws 연결을 하고있음
+  // req 열어보면 undefined
+  // ws은 req가 없다 connection가 있다
+  ```
+
+  ```
+  // app.module
+  GraphQLModule.forRoot({
+      ...
+      installSubscriptionHandlers: true,
+      context: ({ req, connection }) => {
+        if (req) { // 분기로 http랑 ws 나눠줌
+          return { user: req['user'] };
+        } else {
+          console.log(connection);
+        }
+      },
+    }),
+  // 리스닝 진행됨 확인 가능
+
+  // http는 req 마다 헤더에 넣어서 보내지만
+  // ws는 또 http와 다르게 연결 시작할 때 connection에 토큰을 딱 한번 보낸다
+  ```
+
+- 설정한 subscription 트리거 작동시키기
+
+  ```
+  // resolver.ts
+  @Mutation((returns) => Boolean)
+  potatoReady() {
+    pubSub.publish('hotPotatos', { readyPotatoes: 'Your potato love you' });
+    // 첫번째는 트리거 지정한 이름, 두번째는 payload 인데 object 형태
+    // key 는 메소드 이름 value는 보내고 싶은 데이터
+    return true;
+  }
+
+  @Subscription((returns) => String)
+  readyPotatoes() {
+    return pubSub.asyncIterator('hotPotatos');
+    // 'hotPotatos' 를 트리거로 지정
+  }
+  ```
+
+  ```
+  // 구독
+  subscription{
+    readyPotatoes
+  }
+
+  // 어딘가에서 트리거 발생
+  mutation{
+    potatoReady
+  }
+
+  // 트리거 발생시마다 구독되어 있는 곳에 리턴
+  {
+    "data": {
+      "readyPotatoes": "Your potato love you"
+    }
+  }
+  ```

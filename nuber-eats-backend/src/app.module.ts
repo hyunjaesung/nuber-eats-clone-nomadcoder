@@ -22,6 +22,7 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
 import { Dish } from './restaurants/entities/dish.entity';
 import { Order } from './orders/entities/order.entity';
 import { OrderItem } from './orders/entities/order-item.entity';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   // 그래프 QL 설정
@@ -42,7 +43,14 @@ import { OrderItem } from './orders/entities/order-item.entity';
     GraphQLModule.forRoot({
       autoSchemaFile: true, // code First
       // join(process.cwd(), 'src/schema.gql') 로하면 파일생성
-      context: ({ req }) => ({ user: req['user'] }),
+      installSubscriptionHandlers: true,
+      context: ({ req, connection }) => {
+        if (req) {
+          return { user: req['user'] };
+        } else {
+          console.log(connection);
+        }
+      },
     }),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -90,6 +98,7 @@ import { OrderItem } from './orders/entities/order-item.entity';
     // CommonModule,
     RestaurantsModule,
     AuthModule,
+    OrdersModule,
     MailModule.forRoot({
       apiKey: process.env.MAILGUN_API_KEY,
       domain: process.env.MAILGUN_DOMAIN,
