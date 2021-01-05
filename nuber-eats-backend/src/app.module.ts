@@ -23,6 +23,7 @@ import { Dish } from './restaurants/entities/dish.entity';
 import { Order } from './orders/entities/order.entity';
 import { OrderItem } from './orders/entities/order-item.entity';
 import { OrdersModule } from './orders/orders.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   // 그래프 QL 설정
@@ -109,6 +110,7 @@ import { OrdersModule } from './orders/orders.module';
       domain: process.env.MAILGUN_DOMAIN,
       fromEmail: process.env.MAILGUN_FROM_EMAIL,
     }),
+    CommonModule,
   ],
   controllers: [],
   providers: [],

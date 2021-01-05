@@ -1,4 +1,3 @@
-import { PubSub } from 'graphql-subscriptions';
 import { Args, Mutation, Resolver, Query, Subscription } from '@nestjs/graphql';
 import { AuthUser } from 'src/auth/auth-user.decorator';
 import { Role } from 'src/auth/role.decorator';
@@ -9,13 +8,16 @@ import { OrderService } from './orders.service';
 import { GetOrdersOutput, GetOrdersInput } from './dtos/get-orders.dto';
 import { GetOrderOutput, GetOrderInput } from './dtos/get-order.dto';
 import { EditOrderOutput, EditOrderInput } from './dtos/edit-order.dto';
-
-const pubSub = new PubSub();
-// PubSub은 Publish and Subscription
+import { Inject } from '@nestjs/common';
+import { PUB_SUB } from 'src/common/common.constant';
+import { PubSub } from 'graphql-subscriptions';
 
 @Resolver((of) => Order)
 export class OrderResolver {
-  constructor(private readonly ordersService: OrderService) {}
+  constructor(
+    private readonly ordersService: OrderService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+  ) {}
 
   @Mutation((returns) => CreateOrderOutput)
   @Role(['Client'])
@@ -55,7 +57,9 @@ export class OrderResolver {
   }
   @Mutation((returns) => Boolean)
   potatoReady() {
-    pubSub.publish('hotPotatos', { readyPotatoes: 'Your potato love you' });
+    this.pubSub.publish('hotPotatos', {
+      readyPotatoes: 'Your potato love you',
+    });
     // 첫번째는 트리거 지정한 이름, 두번째는 payload 인데 object 형태
     // key 는 메소드 이름 value는 보내고 싶은 데이터
     return true;
@@ -66,7 +70,7 @@ export class OrderResolver {
   readyPotatoes(@AuthUser() user: User) {
     // 여기선 String을 리턴하지 않고
     // asyncIterator 를 리턴할거다
-    return pubSub.asyncIterator('hotPotatos');
+    return this.pubSub.asyncIterator('hotPotatos');
     // 'hotPotatos' 를 트리거로 지정
   }
 }

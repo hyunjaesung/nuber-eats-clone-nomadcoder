@@ -747,6 +747,11 @@ nest g mo jwt
       return {
   ```
 
+- @Global 시 유의 사항
+
+  - Global 데코레이터로 Global 모듈로 만들어도 app.module에는 포함이 되어야 한다
+  - Global 모듈의 provider 땡겨 쓸때도 Global 모듈 안에서 exports해야 쓸 수 있다
+
 - Jwt 모듈 옵션 기능
 
   ```{typescript}
@@ -804,6 +809,14 @@ nest g mo jwt
   const token = this.jwtService.sign({ id: user.id });
 
   ```
+
+- provide로 provider 만들때 유의사항
+  - provide에 문자열을 넣어 줘야 하고
+  - 해당 provider 쓰는 곳에 @inject(문자열) 로 넣어줘야한다
+    ```{typescript}
+    // 예
+    @Inject(CONFIG_OPTIONS) private readonly options: MailModuleOptions,
+    ```
 
 ### JWT 인증 미들웨어
 
@@ -2376,7 +2389,7 @@ export class AppModule {
 
 - 다음 문제는 AuthUser 안에서 터지게 된다
 
-  ```
+  ```{typescript}
   // auth-user.decorator
   export const AuthUser = createParamDecorator(
     (data: unknown, context: ExecutionContext) => {
@@ -2389,7 +2402,7 @@ export class AppModule {
   );
   ```
 
-  ```
+  ```{typescript}
   // auth.guard
   async canActivate(context: ExecutionContext) {
     ...
@@ -2408,3 +2421,37 @@ export class AppModule {
 
 - 정리
   - JwtMiddleware -> AuthGuard -> 데코레이터 순으로 요청 지나간다
+
+### PubSub
+
+- PubSub은 딱 하나만 존재해야된다
+- 공통 모듈로 이동시키기
+
+  ```
+  // common.constant
+  export const PUB_SUB = 'PUB_SUB';
+
+  // common.module
+  @Global()
+  @Module({
+    exports: [PUB_SUB],
+    providers: [
+      {
+        provide: PUB_SUB,
+        useValue: new PubSub(),
+      },
+    ],
+  })
+
+  // order.resolver
+  export class OrderResolver {
+    constructor(
+      ...
+      @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    ) {} // 추가
+  ```
+
+- 유의점
+  - PubSub은 오직 서버 하나에서만 동작
+  - 서버가 여러개 있으면 별도의 PubSub 서버가 필요함
+    - https://www.npmjs.com/package/graphql-redis-subscriptions
