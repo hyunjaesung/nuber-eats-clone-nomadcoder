@@ -2,7 +2,8 @@ import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { Reflector } from '@nestjs/core';
 import { AllowedRoles } from './role.decorator';
-import { User } from 'src/users/entities/user.entity';
+import { JwtService } from 'src/jwt/jwt.service';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 // Guard 를 이용하면 Endpoint 보호 가능
@@ -11,9 +12,13 @@ export class AuthGuard implements CanActivate {
   // request 계속 진행 시키고
   // 아니면 request 중단 시킴
 
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly jwtService: JwtService,
+    private readonly userService: UsersService, // module에  UsersModule import 필요, Service 쓰려면 export 하는 Module을 추가해야한다
+  ) {}
 
-  canActivate(context: ExecutionContext) {
+  async canActivate(context: ExecutionContext) {
     const roles = this.reflector.get<AllowedRoles>(
       'allowedRole',
       context.getHandler(),
@@ -26,18 +31,28 @@ export class AuthGuard implements CanActivate {
     }
 
     const gqlContext = GqlExecutionContext.create(context).getContext();
-    // http 요청과 gql 형태 달라서 변형
-    const user: User = gqlContext['user'];
-    if (!user) {
-      // 유저 데이터가 없는 경우 req 거부
+    const token = gqlContext.token;
+    if (token) {
+      const decoded = this.jwtService.verify(token.toString());
+
+      if (typeof decoded === 'object' && decoded.hasOwnProperty('id')) {
+        const { user } = await this.userService.findById(decoded['id']);
+        if (!user) {
+          // 유저 데이터가 없는 경우 req 거부
+          return false;
+        }
+        gqlContext['user'] = user; // graphql context 안에 user 넣어줘야한다
+
+        if (roles.includes('Any')) {
+          // Any 면 모두 허가
+          return true;
+        }
+        return roles.includes(user.role);
+      }
+    } else {
       return false;
     }
-    if (roles.includes('Any')) {
-      // Any 면 모두 허가
-      return true;
-    }
 
-    return roles.includes(user.role);
     // 메타 데이터와 user의 role이 일치하는 경우만 true 리턴
   }
 }

@@ -62,8 +62,8 @@ export class OrderResolver {
   }
 
   @Subscription((returns) => String)
-  // 뭘 리턴하냐 에 따라 달라진다
-  readyPotatoes() {
+  @Role(['Any'])
+  readyPotatoes(@AuthUser() user: User) {
     // 여기선 String을 리턴하지 않고
     // asyncIterator 를 리턴할거다
     return pubSub.asyncIterator('hotPotatos');

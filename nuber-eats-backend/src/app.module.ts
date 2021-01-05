@@ -45,10 +45,15 @@ import { OrdersModule } from './orders/orders.module';
       // join(process.cwd(), 'src/schema.gql') 로하면 파일생성
       installSubscriptionHandlers: true,
       context: ({ req, connection }) => {
+        const TOKEN_KEY = 'x-jwt';
         if (req) {
-          return { user: req['user'] };
-        } else {
-          console.log(connection);
+          return { token: req.headers[TOKEN_KEY] };
+          // return { user: req['user'] };
+          // ws 랑 같이 쓸때는 jwt미들웨어가 user 못 넣어주므로 header 를 보내자
+        } else if (connection) {
+          return { token: connection.context[TOKEN_KEY] };
+          // connection.context 에 토큰 들어있음
+          // context 는 http의 헤더랑 비슷
         }
       },
     }),
@@ -108,19 +113,20 @@ import { OrdersModule } from './orders/orders.module';
   controllers: [],
   providers: [],
 })
-export class AppModule implements NestModule {
+// implements NestModule
+export class AppModule {
   // 루트모듈에 미들웨어 설치
   // 미들웨어는 어떤 모듈이나 설치 가능
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(JwtMiddleware).forRoutes({
-      path: '/graphql',
-      method: RequestMethod.POST,
-    });
-    // 특정 루트 특정 메서드 미들웨어 지정 가능
-    // consumer.apply(JwtMiddleware).exclude({
-    //   path: '/블라블라',
-    //   method: RequestMethod.ALL,
-    // });
-    // 제외도 가능
-  }
+  // configure(consumer: MiddlewareConsumer) {
+  //   consumer.apply(JwtMiddleware).forRoutes({
+  //     path: '/graphql',
+  //     method: RequestMethod.POST,
+  //   });
+  // 특정 루트 특정 메서드 미들웨어 지정 가능
+  // consumer.apply(JwtMiddleware).exclude({
+  //   path: '/블라블라',
+  //   method: RequestMethod.ALL,
+  // });
+  // 제외도 가능
+  // }
 }
