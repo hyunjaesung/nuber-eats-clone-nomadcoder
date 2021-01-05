@@ -2455,3 +2455,37 @@ export class AppModule {
   - PubSub은 오직 서버 하나에서만 동작
   - 서버가 여러개 있으면 별도의 PubSub 서버가 필요함
     - https://www.npmjs.com/package/graphql-redis-subscriptions
+
+### Subscription Filter
+
+- 모든 update에 대응할 필요가 없다
+  - 내 주문 정보만 보고싶지 다른 사람 것까지 받고싶지 않다
+- 설정
+
+  ```
+  @Mutation((returns) => Boolean)
+  async potatoReady(@Args('potatoId') potatoId: number) {
+    await this.pubSub.publish('hotPotatos', {
+      readyPotatoes: potatoId,
+    });
+    return true;
+  }
+
+  @Subscription((returns) => String, {
+    filter: ({ readyPotatoes }, { potatoId }, context) => {
+      // payload는 publish 할때 보낸 데이터
+      // variables은 subscription 할때 처음 지정한 인자
+      // context는 gql context
+
+      // 세개를 활용하면 filter 활용 가능하다
+      return readyPotatoes === potatoId;
+    },
+  })
+
+  @Role(['Any'])
+  readyPotatoes(@Args('potatoId') potatoId: number) {
+    return this.pubSub.asyncIterator('hotPotatos');
+  }
+  ```
+
+- potatoId 가 일치할때 만 publish된 데이터 수신

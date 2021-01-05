@@ -55,19 +55,29 @@ export class OrderResolver {
   ): Promise<EditOrderOutput> {
     return this.ordersService.editOrder(user, editOrderInput);
   }
+
   @Mutation((returns) => Boolean)
-  potatoReady() {
-    this.pubSub.publish('hotPotatos', {
-      readyPotatoes: 'Your potato love you',
+  async potatoReady(@Args('potatoId') potatoId: number) {
+    await this.pubSub.publish('hotPotatos', {
+      readyPotatoes: potatoId,
     });
     // 첫번째는 트리거 지정한 이름, 두번째는 payload 인데 object 형태
     // key 는 메소드 이름 value는 보내고 싶은 데이터
     return true;
   }
 
-  @Subscription((returns) => String)
+  @Subscription((returns) => String, {
+    filter: ({ readyPotatoes }, { potatoId }, context) => {
+      // payload는 publish 할때 보낸 데이터
+      // variables은 subscription 할때 처음 지정한 인자
+      // context는 gql context
+
+      // 세개를 활용하면 filter 활용 가능하다
+      return readyPotatoes === potatoId;
+    },
+  })
   @Role(['Any'])
-  readyPotatoes(@AuthUser() user: User) {
+  readyPotatoes(@Args('potatoId') potatoId: number) {
     // 여기선 String을 리턴하지 않고
     // asyncIterator 를 리턴할거다
     return this.pubSub.asyncIterator('hotPotatos');
