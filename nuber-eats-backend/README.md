@@ -2460,6 +2460,7 @@ export class AppModule {
 
 - 모든 update에 대응할 필요가 없다
   - 내 주문 정보만 보고싶지 다른 사람 것까지 받고싶지 않다
+- 구독자 알림 여부 옵션
 - 설정
 
   ```
@@ -2489,3 +2490,21 @@ export class AppModule {
   ```
 
 - potatoId 가 일치할때 만 publish된 데이터 수신
+
+### Subscription Resolve
+
+- 최종적으로 구독자가 받는 response 형태 변경 가능 옵션
+- asyncIterator 가 리턴하는 값
+- 설정
+  ```{typescript}
+  @Subscription((returns) => String, {
+    ...
+    resolve: ({ readyPotatoes }) => {
+      return `Your potato with the id ${readyPotatoes}`;
+    },
+  })
+  @Role(['Any'])
+  readyPotatoes(@Args('potatoId') potatoId: number) {
+    return this.pubSub.asyncIterator('hotPotatos');
+  }
+  ```

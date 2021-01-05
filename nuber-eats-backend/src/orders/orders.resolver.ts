@@ -75,6 +75,9 @@ export class OrderResolver {
       // 세개를 활용하면 filter 활용 가능하다
       return readyPotatoes === potatoId;
     },
+    resolve: ({ readyPotatoes }) => {
+      return `Your potato with the id ${readyPotatoes}`;
+    },
   })
   @Role(['Any'])
   readyPotatoes(@Args('potatoId') potatoId: number) {
