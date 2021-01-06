@@ -2555,3 +2555,7 @@ const order = await this.orders.findOne(orderId, {
 
 - 관계를 계속 파고들어가면서 계속 소환하면 db 폭파된다
   - N+1 problem으로 방어할 수 있다
+
+## Payment
+- paddle 이용
+  - 디지털 상품을 파는데 이용 가능 (멤버쉽, 강의 등)

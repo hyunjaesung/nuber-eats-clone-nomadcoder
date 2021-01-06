@@ -3,11 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Payment } from './entities/payment.entity';
 import {
-  CreatePaymentOuput,
+  CreatePaymentOutput,
   CreatePaymentInput,
 } from './dtos/create-payment.dto';
 import { User } from 'src/users/entities/user.entity';
 import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
+import { GetPaymentsOutput } from './dtos/get-payments.dto';
 
 @Injectable()
 export class PaymentService {
@@ -21,7 +22,7 @@ export class PaymentService {
   async createPayment(
     owner: User,
     { transactionId, restaurantId }: CreatePaymentInput,
-  ): Promise<CreatePaymentOuput> {
+  ): Promise<CreatePaymentOutput> {
     try {
       const restaurant = await this.restaurants.findOne(restaurantId);
       if (!restaurant) {
@@ -48,6 +49,21 @@ export class PaymentService {
       };
     } catch {
       return { ok: false, error: 'Could not create payment.' };
+    }
+  }
+
+  async getPayments(user: User): Promise<GetPaymentsOutput> {
+    try {
+      const payments = await this.payments.find({ user: user });
+      return {
+        ok: true,
+        payments,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: 'Could not load payments.',
+      };
     }
   }
 }

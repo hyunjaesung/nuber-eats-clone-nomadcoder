@@ -90,6 +90,6 @@ export class User extends CoreEntity {
   restaurants: Restaurant[];
 
   @Field((type) => [Payment])
-  @OneToMany((type) => Payment, (payment) => payment.user)
+  @OneToMany((type) => Payment, (payment) => payment.user, { eager: true })
   payments: Payment[];
 }
