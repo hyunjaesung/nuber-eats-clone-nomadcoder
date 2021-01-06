@@ -2525,7 +2525,7 @@ const order = await this.orders.findOne(orderId, {
   await order.customer // 이렇게 접근해야 가지고 온다
   ```
 
-```
+```{typescript}
 @Field((type) => User, { nullable: true })
   @ManyToOne((type) => User, (user) => user.orders, {
     ...
@@ -2557,5 +2557,85 @@ const order = await this.orders.findOne(orderId, {
   - N+1 problem으로 방어할 수 있다
 
 ## Payment
+
 - paddle 이용
   - 디지털 상품을 파는데 이용 가능 (멤버쉽, 강의 등)
+
+### Task Scheduling
+
+- https://docs.nestjs.com/techniques/task-scheduling
+- 정해진 시간에 function 실행 시켜준다
+
+```
+npm install --save @nestjs/schedule
+```
+
+- 설정
+
+  ```
+  import { Module } from '@nestjs/common';
+  import { ScheduleModule } from '@nestjs/schedule';
+
+  @Module({
+    imports: [
+      ScheduleModule.forRoot()
+    ],
+  })
+  export class AppModule {}
+  ```
+
+- Declarative 방법
+
+  - @Cron
+
+    - https://docs.nestjs.com/techniques/task-scheduling#declarative-cron-jobs
+    - 지금 시간 기준으로 트리거 작동 시킬때
+
+    ```
+    import { Injectable, Logger } from '@nestjs/common';
+    import { Cron } from '@nestjs/schedule';
+
+    @Injectable()
+    export class TasksService {
+      private readonly logger = new Logger(TasksService.name);
+
+      @Cron('45 * * * * *')
+      // 1분에 한번, 매번 45초가 되었을때
+      handleCron() {
+        this.logger.debug('Called when the current second is 45');
+      }
+    }
+    ```
+
+  - @Interval
+
+    - 지정한 초 루틴마다 반복
+
+    ```
+    @Interval(15000)
+    async checkForPayments2() {
+      console.log('checking interval');
+    }
+    ```
+
+  - @Timeout
+    - 지정한 시간후 한 번
+
+- Dynamic 방법
+
+  - https://docs.nestjs.com/techniques/task-scheduling#dynamic-cron-jobs
+  - 데코레이터로 형성한 작업을 메서드로 동적으로 변형가능
+
+  ```
+  constructor(private schedulerRegistry: SchedulerRegistry) {}
+  ...
+
+   @Cron('15 * * * * *', {
+    name: 'myTest',
+  })
+  async checkForPayments() {
+    console.log('checking');
+    const job = this.schedulerRegistry.getCronJob('myTest');
+    job.stop(); // 그만해!
+  }
+  ```

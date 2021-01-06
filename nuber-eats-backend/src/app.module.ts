@@ -25,7 +25,7 @@ import { OrdersModule } from './orders/orders.module';
 import { CommonModule } from './common/common.module';
 import { PaymentsModule } from './payments/payments.module';
 import { Payment } from './payments/entities/payment.entity';
-
+import { ScheduleModule } from '@nestjs/schedule';
 @Module({
   // 그래프 QL 설정
   // https://docs.nestjs.com/graphql/quick-start
@@ -114,6 +114,7 @@ import { Payment } from './payments/entities/payment.entity';
     }),
     CommonModule,
     PaymentsModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [],
   providers: [],
