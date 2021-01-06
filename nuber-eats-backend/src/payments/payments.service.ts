@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, LessThan } from 'typeorm';
 import { Payment } from './entities/payment.entity';
 import {
   CreatePaymentOutput,
@@ -9,7 +9,7 @@ import {
 import { User } from 'src/users/entities/user.entity';
 import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
 import { GetPaymentsOutput } from './dtos/get-payments.dto';
-import { Cron, Interval, Timeout, SchedulerRegistry } from '@nestjs/schedule';
+import { Interval } from '@nestjs/schedule';
 
 @Injectable()
 export class PaymentService {
@@ -18,7 +18,6 @@ export class PaymentService {
     private readonly payments: Repository<Payment>,
     @InjectRepository(Restaurant)
     private readonly restaurants: Repository<Restaurant>,
-    private schedulerRegistry: SchedulerRegistry,
   ) {}
 
   async createPayment(
@@ -46,6 +45,14 @@ export class PaymentService {
           restaurant,
         }),
       );
+
+      // 프로모션
+      restaurant.isPromoted = true;
+      const date = new Date();
+      date.setDate(date.getDate() + 7);
+      restaurant.promotedUntil = date;
+      this.restaurants.save(restaurant);
+
       return {
         ok: true,
       };
@@ -69,22 +76,16 @@ export class PaymentService {
     }
   }
 
-  @Cron('15 * * * * *', {
-    name: 'myTest',
-  })
-  async checkForPayments() {
-    console.log('checking');
-    const job = this.schedulerRegistry.getCronJob('myTest');
-    job.stop(); // 그만해!
-  }
-
-  @Interval(15000)
-  async checkForPayments2() {
-    console.log('checking interval');
-  }
-
-  @Timeout(20000)
-  afterstart() {
-    console.log('timeout');
+  @Interval(2000)
+  async checkPromotedRestaurants() {
+    const restaurants = await this.restaurants.find({
+      isPromoted: true,
+      promotedUntil: LessThan(new Date()),
+    });
+    restaurants.forEach(async (restaurant) => {
+      restaurant.isPromoted = false;
+      restaurant.promotedUntil = null;
+      await this.restaurants.save(restaurant);
+    });
   }
 }
