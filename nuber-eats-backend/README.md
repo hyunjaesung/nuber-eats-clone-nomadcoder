@@ -2508,3 +2508,50 @@ export class AppModule {
     return this.pubSub.asyncIterator('hotPotatos');
   }
   ```
+
+### eager relation
+
+```{typescript}
+const order = await this.orders.findOne(orderId, {
+        relations: ['restaurant', "customer", "driver"],
+      });
+```
+
+- order 정보 받아올때 customer restaurants driver relation 이 필요하다
+
+- eager relation은 db에서 entity를 load할때 자동으로 가지고 오는 relation을 의마한다
+- lazy relation은 entity의 해당 프로퍼티 직접 접근해야지 비동기로 가지고오는 relation이다
+  ```{typescript}
+  await order.customer // 이렇게 접근해야 가지고 온다
+  ```
+
+```
+@Field((type) => User, { nullable: true })
+  @ManyToOne((type) => User, (user) => user.orders, {
+    ...
+    eager: true,
+  })
+  customer?: User;
+
+  @Field((type) => User, { nullable: true })
+  @ManyToOne((type) => User, (user) => user.rides, {
+    ...
+    eager: true,
+  })
+  driver?: User;
+
+  @Field((type) => Restaurant, { nullable: true })
+  @ManyToOne((type) => Restaurant, (restaurant) => restaurant.orders, {
+    ...
+    eager: true,
+  })
+  restaurant?: Restaurant;
+
+  @Field((type) => [OrderItem])
+  @ManyToMany((type) => OrderItem, { eager: true })
+  @JoinTable()
+  items: OrderItem[];
+```
+
+- 관계를 계속 파고들어가면서 계속 소환하면 db 폭파된다
+  - N+1 problem으로 방어할 수 있다
