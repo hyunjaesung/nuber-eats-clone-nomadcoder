@@ -12,7 +12,6 @@ import * as Joi from 'joi'; // * 는 있는거 모두 import 하는거라 export
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
-import { JwtMiddleware } from './jwt/jwt.middleware';
 import { AuthModule } from './auth/auth.module';
 import { EmailVerification } from './users/entities/emailVerification.entity';
 import { MailModule } from './mail/mail.module';
@@ -24,6 +23,8 @@ import { Order } from './orders/entities/order.entity';
 import { OrderItem } from './orders/entities/order-item.entity';
 import { OrdersModule } from './orders/orders.module';
 import { CommonModule } from './common/common.module';
+import { PaymentsModule } from './payments/payments.module';
+import { Payment } from './payments/entities/payment.entity';
 
 @Module({
   // 그래프 QL 설정
@@ -95,6 +96,7 @@ import { CommonModule } from './common/common.module';
         Dish,
         Order,
         OrderItem,
+        Payment,
       ],
     }),
     JwtModule.forRoot({
@@ -111,6 +113,7 @@ import { CommonModule } from './common/common.module';
       fromEmail: process.env.MAILGUN_FROM_EMAIL,
     }),
     CommonModule,
+    PaymentsModule,
   ],
   controllers: [],
   providers: [],
