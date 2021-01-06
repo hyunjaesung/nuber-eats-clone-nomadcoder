@@ -1,4 +1,4 @@
-import { Entity, Column, BeforeInsert, BeforeUpdate } from 'typeorm';
+import { Entity, Column, BeforeInsert, BeforeUpdate, OneToMany } from 'typeorm';
 import { CoreEntity } from 'src/common/entities/core.entity';
 import {
   ObjectType,
@@ -8,12 +8,14 @@ import {
 } from '@nestjs/graphql';
 import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from '@nestjs/common';
-import { IsEmail, IsString, IsEnum } from 'class-validator';
+import { IsEmail, IsString, IsEnum, IsBoolean } from 'class-validator';
+import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
+import { Order } from 'src/orders/entities/order.entity';
 
-enum UserRole {
-  Client,
-  Owner,
-  Delivery,
+export enum UserRole {
+  Client = 'Client',
+  Owner = 'Owner',
+  Delivery = 'Delivery',
 }
 
 registerEnumType(UserRole, {
@@ -21,10 +23,18 @@ registerEnumType(UserRole, {
 });
 
 // 순서대로 graphQLScheme Entity 작업
-@InputType({ isAbstract: true }) // DTO 작업 맨위에 있어야한다
+@InputType('UserInputType', { isAbstract: true }) // DTO 작업 맨위에 있어야한다
 @ObjectType()
 @Entity()
 export class User extends CoreEntity {
+  @Field((type) => [Order])
+  @OneToMany((type) => Order, (order) => order.customer)
+  orders: Order[];
+
+  @Field((type) => [Order])
+  @OneToMany((type) => Order, (order) => order.driver)
+  rides: Order[];
+
   @BeforeInsert()
   @BeforeUpdate() // 업데이트시 이거 추가해야 해당칼럼 해쉬화 된다!
   async hashPassword(): Promise<void> {
@@ -71,5 +81,10 @@ export class User extends CoreEntity {
 
   @Column({ default: false })
   @Field((type) => Boolean)
+  @IsBoolean()
   verified: boolean;
+
+  @Field((type) => [Restaurant])
+  @OneToMany((type) => Restaurant, (restaurant) => restaurant.owner)
+  restaurants: Restaurant[];
 }

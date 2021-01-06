@@ -10,13 +10,20 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import * as Joi from 'joi'; // * 는 있는거 모두 import 하는거라 export 모듈 안해도 가지고온다
 import { UsersModule } from './users/users.module';
-import { CommonModule } from './common/common.module';
 import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
 import { JwtMiddleware } from './jwt/jwt.middleware';
 import { AuthModule } from './auth/auth.module';
 import { EmailVerification } from './users/entities/emailVerification.entity';
 import { MailModule } from './mail/mail.module';
+import { Restaurant } from './restaurants/entities/restaurant.entity';
+import { Category } from './restaurants/entities/category.entity';
+import { RestaurantsModule } from './restaurants/restaurants.module';
+import { Dish } from './restaurants/entities/dish.entity';
+import { Order } from './orders/entities/order.entity';
+import { OrderItem } from './orders/entities/order-item.entity';
+import { OrdersModule } from './orders/orders.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   // 그래프 QL 설정
@@ -37,7 +44,19 @@ import { MailModule } from './mail/mail.module';
     GraphQLModule.forRoot({
       autoSchemaFile: true, // code First
       // join(process.cwd(), 'src/schema.gql') 로하면 파일생성
-      context: ({ req }) => ({ user: req['user'] }),
+      installSubscriptionHandlers: true,
+      context: ({ req, connection }) => {
+        const TOKEN_KEY = 'x-jwt';
+        if (req) {
+          return { token: req.headers[TOKEN_KEY] };
+          // return { user: req['user'] };
+          // ws 랑 같이 쓸때는 jwt미들웨어가 user 못 넣어주므로 header 를 보내자
+        } else if (connection) {
+          return { token: connection.context[TOKEN_KEY] };
+          // connection.context 에 토큰 들어있음
+          // context 는 http의 헤더랑 비슷
+        }
+      },
     }),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -68,36 +87,48 @@ import { MailModule } from './mail/mail.module';
       synchronize: process.env.NODE_ENV !== 'prod', // 어플리케이션 상태로 DB migration
       logging:
         process.env.NODE_ENV !== 'prod' && process.env.NODE_ENV !== 'test',
-      entities: [User, EmailVerification],
+      entities: [
+        User,
+        EmailVerification,
+        Restaurant,
+        Category,
+        Dish,
+        Order,
+        OrderItem,
+      ],
     }),
     JwtModule.forRoot({
       privateKey: process.env.PRIVATE_KEY,
     }),
     UsersModule,
     // CommonModule,
+    RestaurantsModule,
     AuthModule,
+    OrdersModule,
     MailModule.forRoot({
       apiKey: process.env.MAILGUN_API_KEY,
       domain: process.env.MAILGUN_DOMAIN,
       fromEmail: process.env.MAILGUN_FROM_EMAIL,
     }),
+    CommonModule,
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule implements NestModule {
+// implements NestModule
+export class AppModule {
   // 루트모듈에 미들웨어 설치
   // 미들웨어는 어떤 모듈이나 설치 가능
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(JwtMiddleware).forRoutes({
-      path: '/graphql',
-      method: RequestMethod.POST,
-    });
-    // 특정 루트 특정 메서드 미들웨어 지정 가능
-    // consumer.apply(JwtMiddleware).exclude({
-    //   path: '/블라블라',
-    //   method: RequestMethod.ALL,
-    // });
-    // 제외도 가능
-  }
+  // configure(consumer: MiddlewareConsumer) {
+  //   consumer.apply(JwtMiddleware).forRoutes({
+  //     path: '/graphql',
+  //     method: RequestMethod.POST,
+  //   });
+  // 특정 루트 특정 메서드 미들웨어 지정 가능
+  // consumer.apply(JwtMiddleware).exclude({
+  //   path: '/블라블라',
+  //   method: RequestMethod.ALL,
+  // });
+  // 제외도 가능
+  // }
 }

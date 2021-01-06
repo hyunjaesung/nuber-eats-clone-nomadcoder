@@ -29,6 +29,7 @@
   - providers : 이 모듈 안에서 공유되고 쓰여질 의존성 주입될 인스턴스
   - export : 공유 되는 인스턴스 중에 밖으로 나갈것
   - import : 이 모듈에서 쓰일 provider를 내보내는 모듈 리스트
+    - 팁 : export 하는 Service 다른데 서 쓰려면 해당 Module을 import 해야한다
 
 ## #1 GRAPHQL API
 
@@ -40,14 +41,14 @@ $ npm i @nestjs/graphql graphql-tools graphql apollo-server-express
 
 ### Code First 로 graphql Resolver 연결 예제
 
-```
+```{typescript}
 GraphQLModule.forRoot({
   autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
   // true 로 하면 그냥 메모리에서 동작
 }),
 ```
 
-```
+```{typescript}
 // src/app.module.ts
 imports: [
     GraphQLModule.forRoot({
@@ -58,7 +59,7 @@ imports: [
   ],
 ```
 
-```
+```{typescript}
 // src/restaurants/restaurant.module.ts
 
 import { Module } from '@nestjs/common';
@@ -71,7 +72,7 @@ export class RestaurantsModule {}
 
 ```
 
-```
+```{typescript}
 // src/restaurants/restaurant.resolver.ts
 import { Resolver, Query } from '@nestjs/graphql';
 
@@ -142,6 +143,7 @@ app.useGlobalPipes(new ValidationPipe());
 ### TypeORM
 
 - https://typeorm.io/#/
+- 데코레이터 : https://typeorm.io/#/decorator-reference
 - TypeORM 을 쓰면 타입을 써주면 직접 SQL쓰지 않아도 어플리케이션과 DB 소통하게 도와준다
 - Typescript에 친화적
 - 다른 ORM보다 좀 더 포괄적
@@ -155,7 +157,7 @@ app.useGlobalPipes(new ValidationPipe());
   ```
 - 설정
 
-  ```
+  ```{typescript}
   // app.module에 추가
   import {TypeOrmModule} from '@nestjs/typeorm'
 
@@ -187,7 +189,7 @@ app.useGlobalPipes(new ValidationPipe());
   }
   ```
 
-  ```
+  ```{typescript}
   TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
@@ -221,7 +223,7 @@ app.useGlobalPipes(new ValidationPipe());
     ```
 
 - 설정
-  ```
+  ```{typescript}
   // app.module 에 추가
   ConfigModule.forRoot({
       isGlobal: true,
@@ -229,7 +231,7 @@ app.useGlobalPipes(new ValidationPipe());
       ignoreEnvFile: process.env.NODE_ENV === 'prod',
     }),
   ```
-  ```
+  ```{typescript}
   //.env.dev
   DB_HOST=localhost
   DB_PORT=5432
@@ -237,7 +239,7 @@ app.useGlobalPipes(new ValidationPipe());
   DB_PASSWORD=12345
   DB_DATABASE=nuber-eats
   ```
-  ```
+  ```{typescript}
   TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -257,7 +259,7 @@ app.useGlobalPipes(new ValidationPipe());
     import * as Joi from 'joi';
     ```
   - 설정
-    ```
+    ```{typescript}
     ConfigModule.forRoot({
       ...
       validationSchema: Joi.object({
@@ -290,7 +292,7 @@ https://typeorm.io/#/entities
 
   - 기존 GraphQL의 ObjectType 설정한 곳에 같이 설정할 수 있다
 
-  ```
+  ```{typescript}
   @ObjectType() // Object Type 리턴 만들어줌 Resolver로 연결
   @Entity()
   export class Restaurant {
@@ -315,14 +317,14 @@ https://typeorm.io/#/entities
   ```
 
   - DB 가보면 Entity에 들어가지 않았는데 TypeORM에 따로 어디잇는지 알려줘야한다
-    ```
+    ```{typescript}
     TypeOrmModule.forRoot({
       ...
     entities: [Restaurant],
     }),
     ```
     - 실행하면 SQL문 잔뜩 실행되는데 이는 synchronize true로 해놔서 entity 자동으로 찾고 migration이 자동으로 된다
-      ```
+      ```{typescript}
       // 환경따라 추가 설정
       // 배포 상태에서는 실제 데이터라서 따로 작업하고 싶을수 있다
       synchronize: process.env.NODE_ENV !== 'prod'
@@ -340,7 +342,7 @@ https://typeorm.io/#/entities
 
 - 설정
 
-  ```
+  ```{typescript}
   // restaurant.module
   @Module({
     imports: [TypeOrmModule.forFeature([Restaurant])],
@@ -379,7 +381,7 @@ https://typeorm.io/#/entities
 
 - create, save 메서드 이용
 
-  ```
+  ```{typescript}
   // restaurant.service
   createRestaurant(
     createRestaurantDto: CreateRestaurantDto,
@@ -418,7 +420,7 @@ https://typeorm.io/#/entities
 
   - id와 업데이트 원하는 object
 
-  ```
+  ```{typescript}
   // restaurant.service
   updateRestaurant({ id, data }: UpdateRestaurantDto) {
     this.restaurants.update(id, { ...data });
@@ -456,7 +458,7 @@ https://docs.nestjs.com/graphql/mapped-types#mapped-types
 
 - OmitType
 
-  ```
+  ```{typescript}
   @InputType() // MappedType에서는 InputType
   // @ArgsType()
   export class CreateRestaurantDto extends  OmitType(
@@ -474,7 +476,7 @@ https://docs.nestjs.com/graphql/mapped-types#mapped-types
 
 - PartialType
 
-  ```
+  ```{typescript}
   @InputType()
   class UpdateRestaurantInputType extends PartialType(
     CreateRestaurantDto,
@@ -498,7 +500,7 @@ https://docs.nestjs.com/graphql/mapped-types#mapped-types
 
 - class-validator 설정으로 entity 도 검증가능하다
 - DTO 해당항목 not required 로 하고싶을때
-  ```
+  ```{typescript}
   @Field((_) => Boolean, { defaultValue: true })
   // 그래프QL 스키마를 위해서 기본값 설정
   // DTO에 자동으로 true라고 add해줌
@@ -538,7 +540,7 @@ https://docs.nestjs.com/graphql/mapped-types#mapped-types
 
 https://typeorm.io/#/entities/special-columns
 
-```
+```{typescript}
 @CreateDateColumn()
   createdAt:Date;
 
@@ -548,7 +550,7 @@ https://typeorm.io/#/entities/special-columns
 
 ### Mapped Entity에 Enum 써서 속성 제한하기
 
-```
+```{typescript}
 enum UserRole {
   Client,
   Owner,
@@ -582,7 +584,7 @@ export class User extends CoreEntity {
   - npm i bcrypt @types/bcrypt
 
 - 설정
-  ```
+  ```{typescript}
   // user.entity
   export class User extends CoreEntity {
   ...
@@ -617,13 +619,13 @@ export class User extends CoreEntity {
 
   - privateKey 설정
 
-    ```
+    ```{typescript}
     var token = jwt.sign({ foo: 'bar' }, privateKey, { algorithm: 'RS256'});
     ```
 
     - 유저가 임의로 Token 조작했는지 알아보기위해서
 
-    ```
+    ```{typescript}
     // .env.dev
     ...
     SECRET_KEY=랜덤랜덤
@@ -690,7 +692,7 @@ nest g mo jwt
     - dynamic module은 중간과정이고 결국에는 static module이 된다
 - JWT 동적 모듈 생성
 
-  ```
+  ```{typescript}
     nest g s jwt
   // jwt.module
   @Module({})
@@ -715,7 +717,7 @@ nest g mo jwt
 
 - Jwt 동적 모듈에서 export한 Service users모듈에서 써보기
 
-  ```
+  ```{typescript}
   // app.module
   JwtModule.forRoot(),
   // forRoot() 써서 Service 자동 exports 된다
@@ -745,9 +747,14 @@ nest g mo jwt
       return {
   ```
 
+- @Global 시 유의 사항
+
+  - Global 데코레이터로 Global 모듈로 만들어도 app.module에는 포함이 되어야 한다
+  - Global 모듈의 provider 땡겨 쓸때도 Global 모듈 안에서 exports해야 쓸 수 있다
+
 - Jwt 모듈 옵션 기능
 
-  ```
+  ```{typescript}
   // jwt.interface
   export interface JwtModuleOptions {
     privateKey: string;
@@ -803,6 +810,14 @@ nest g mo jwt
 
   ```
 
+- provide로 provider 만들때 유의사항
+  - provide에 문자열을 넣어 줘야 하고
+  - 해당 provider 쓰는 곳에 @inject(문자열) 로 넣어줘야한다
+    ```{typescript}
+    // 예
+    @Inject(CONFIG_OPTIONS) private readonly options: MailModuleOptions,
+    ```
+
 ### JWT 인증 미들웨어
 
 - 사용자가 http 헤더에 토큰을 넣어서 요청하면 미들웨어가 express next처럼 인증 하고 처리해야한다
@@ -811,7 +826,7 @@ nest g mo jwt
 
 - 미들웨어 설정
 
-  ```
+  ```{typescript}
   // jwt.middleware
   import { NestMiddleware } from '@nestjs/common';
   import { Request, Response, NextFunction } from 'express';
@@ -833,7 +848,7 @@ nest g mo jwt
 
 - 미들웨어 적용
 
-  ```
+  ```{typescript}
   // 첫번째 방법 app.module 에 설정
   export class AppModule implements NestModule {
     // 루트모듈에 미들웨어 설치
@@ -867,7 +882,7 @@ nest g mo jwt
 
   - 중간에 http 헤더에서 토큰 받아서 해독해서 id로 DB에서 해당 유저 정보 꺼내오기
 
-  ```
+  ```{typescript}
   // jwt.service
   @Injectable()
   export class JwtService {
@@ -930,7 +945,7 @@ nest g mo jwt
   - https://docs.nestjs.com/guards
   - https://docs.nestjs.com/graphql/other-features#execution-context
 
-  ```
+  ```{typescript}
 
   // auth.guard.ts
   @Injectable()
@@ -958,9 +973,12 @@ nest g mo jwt
   me(@Context() context) {}
   ```
 
-- 커스텀 데코레이터를 이용한 설정
+- 커스텀 param 데코레이터를 이용한 설정
 
-  ```
+  - param decorator
+    - https://docs.nestjs.com/custom-decorators
+
+  ```{typescript}
   // 역할 따라 다르게 쿼리 데이터 전달 할수 있는 장점 있다
   // auth-user.decorator.ts
   export const AuthUser = createParamDecorator(
@@ -983,7 +1001,7 @@ nest g mo jwt
 
 - 프로필 업데이트
 
-  ```
+  ```{typescript}
   // edit-profile dto
   @ObjectType()
   export class EditProfileOutput extends CoreOutput {}
@@ -1051,7 +1069,7 @@ nest g mo jwt
 
   - 비밀번호가 계속 해싱되서 다른 비밀번호로 바뀐다
 
-  ```
+  ```{typescript}
   // user.entity
 
   @Field((type) => String)
@@ -1101,7 +1119,7 @@ nest g mo jwt
 
     - https://typeorm.io/#/one-to-one-relations
 
-    ```
+    ```{typescript}
     // emailVerification.entity.ts
     // 엔티티 생성하면 DB가보면 레포지토리 하나 더 생긴다!
     @InputType({ isAbstract: true }) // DTO 작업 맨위에 있어야한다
@@ -1132,7 +1150,7 @@ nest g mo jwt
 
     ```
 
-    ```
+    ```{typescript}
     // user.service
 
     // emailVerification 레포지토리 연결 후 이용
@@ -1147,7 +1165,7 @@ nest g mo jwt
 
 - 랜덤 문자 만들기
 
-  ```
+  ```{typescript}
     Math.random().toString(36);
   ```
 
@@ -1172,13 +1190,13 @@ nest g mo jwt
   ```
 
   - node.js 에는 fetch가 없으므로 패키지 설치 필요
-    ```
+    ```{typescript}
     npm i got
     npm i form-data // node 에서 http 폼 만들기
     ```
   - 설정
 
-    ```
+    ```{typescript}
     // mail.service
     import got from 'got';
     import * as FormData from 'form-data';
@@ -1234,7 +1252,7 @@ nest g mo jwt
 
   - {{변수이름}} 으로 템플릿에 변수 전달 가능
 
-    ```
+    ```{typescript}
       ...
       form.append('template', 'veryfy-user');
       form.append('v:userName', `steve`);
@@ -1243,7 +1261,7 @@ nest g mo jwt
       ...
     ```
 
-    ```
+    ```{typescript}
     // 리팩토링 까지 완료
     export class MailService {
       constructor(
@@ -1313,7 +1331,7 @@ nest g mo jwt
 
 - 테스트 init 세팅
 
-  ```
+  ```{typescript}
   // users.service.spec.ts
 
   import { Test } from '@nestjs/testing';
@@ -1443,7 +1461,7 @@ nest g mo jwt
 
 - mocking으로 테스트
 
-  ```
+  ```{typescript}
   describe('createAccount', () => {
     it('should fail if user exists', async () => {
       // 테스트를 하려면 이미 유저가 있는 것처럼 속여야한다
@@ -1478,7 +1496,7 @@ nest g mo jwt
 
 - coverage ignore 설정
 
-  ```
+  ```{typescript}
   // package.json
   "coveragePathIgnorePatterns": [
       "node_modules",
@@ -1489,7 +1507,7 @@ nest g mo jwt
 
 - createAccount 테스트 해보기
 
-  ```
+  ```{typescript}
   // users.service.spec.ts
 
   describe('createAccount_test', () => {
@@ -1576,7 +1594,7 @@ nest g mo jwt
   ```
 
 - mock 유저 만들어서 테스트 진행
-  ```
+  ```{typescript}
   // 테스트 라인
   <!-- const user = await this.users.findOne(
         { email },
@@ -1606,7 +1624,7 @@ nest g mo jwt
 
 - spyOn으로 mock 대체 하기
 
-  ```
+  ```{typescript}
   // mail.service.spec.ts
 
   describe('sendVerificationEmail', () => {
@@ -1626,7 +1644,7 @@ nest g mo jwt
 
 - npm module mock 하기
 
-  ```
+  ```{typescript}
   jest.mock('jsonwebtoken', () => {
     return {
       sign: jest.fn(() => 'TOKEN'),
@@ -1667,7 +1685,7 @@ nest g mo jwt
 
 - ts방식 경로 에러 해결
 
-  ```
+  ```{typescript}
   // jest-e2e.json
 
   {
@@ -1681,7 +1699,7 @@ nest g mo jwt
 
 - db error
 
-  ```
+  ```{typescript}
   // .env.test 만들어 준다
   DB_HOST=localhost
   DB_PORT=5432
@@ -1698,7 +1716,7 @@ nest g mo jwt
 
 - Jest did not exit one second after the test run has completed.
 
-  ```
+  ```{typescript}
   // 테스트 종료 후
   // jest 종료 시켜줘야 한다
   // db drop 시켜야한다
@@ -1713,7 +1731,7 @@ nest g mo jwt
 
 - createAccount 테스트
 
-  ```
+  ```{typescript}
   describe('createAccount', () => {
       const EMAIL = 'test@test,com';
       it('계정 생성 테스트', () => {
@@ -1770,7 +1788,7 @@ nest g mo jwt
   ```
 
 - e2e 요청시 http 헤더 변경
-  ```
+  ```{typescript}
   // set 메서드 이용
   request(app.getHttpServer())
         .post(GRAPHQL_ENDPOINT)
@@ -1788,7 +1806,7 @@ nest g mo jwt
   ```
 - e2e 에서 레포지토리 쓰기
 
-  ```
+  ```{typescript}
   let usersRepository: Repository<User>;
 
   beforeAll(async () => {
@@ -1823,3 +1841,717 @@ nest g mo jwt
         .expect(200)
     // 위 처럼 안하고 어짜피 하나니까 userId 1로 하고 해도된다
   ```
+
+## #10 Restaurant
+
+- Many Releations
+
+```{typescript}
+// category
+@OneToMany((type) => Restaurant, (restaurant) => restaurant.category)
+// 두번째 인자에는 역행해서 써주기
+restaurants: Restaurant[];
+
+// restaurant
+@ManyToOne((type) => Category, (category) => category.restaurants)
+category: Category;
+```
+
+```{typescript}
+// 하나가 지워져도 다른게 지워지면 안되는 경우
+@ManyToOne((type) => Category, (category) => category.restaurants, {
+    nullable: true,
+    onDelete: 'SET NULL', // 카테고리가 지워지더라도 레스토랑이 지워지면 안된다
+  })
+  category: Category;
+```
+
+## Role에 따라 Authorization
+
+- Authorization은 허가 Authentication은 인증
+
+- metaData 이용으로 Authorization
+
+  ```{typescript}
+  // restaurants.resolver.ts
+  enum UserRole {
+    Client,
+    Owner,
+    Delivery,
+  }
+
+  @Mutation((returns) => CreateRestaurantOutput)
+  @SetMetadata("allowedRole", UserRole.Owner) // Metadata로 구분, metaData 설정시 Reflector 이용 해서 사용가능
+
+  async createRestaurant(
+    @AuthUser() authUser: User,
+    @Args('input') createRestaurantInput: CreateRestaurantInput,
+  ): Promise<CreateRestaurantOutput> {
+    ...
+  }
+  ```
+
+- 나만의 decorator 만들어서 간단하게
+
+  ```{typescript}
+  // user.entity
+  export enum UserRole {
+    Client = 'Client',
+    Owner = 'Owner',
+    Delivery = 'Delivery',
+  }
+
+  // role.decorator.ts
+  type AllowedRole = keyof typeof UserRole | 'Any';
+
+  export const Role = (roles: AllowedRole[]) => SetMetadata('allowedRole', roles);
+
+  // restaurant.resolver.ts
+  @Resolver((of) => Restaurant)
+  export class RestaurantResolver {
+    constructor(private readonly restaurantService: RestaurantService) {}
+    @Mutation((returns) => CreateRestaurantOutput)
+    @Role(['Owner'])
+    async createRestaurant(
+      @AuthUser() authUser: User,
+      @Args('input') createRestaurantInput: CreateRestaurantInput,
+    ): Promise<CreateRestaurantOutput> {
+      ...
+    }
+  }
+  ```
+
+- 글로벌 가드 설정 및 요청마다 메타 데이터 설정
+
+  ```{typescript}
+  // auth.module 글로벌 가드 설정
+  @Module({
+    providers: [{ provide: APP_GUARD, useClass: AuthGuard }],
+    // guard를 앱 전체에서 모든 req에 사용하고싶다면 APP_GUARD 상수 사용
+  })
+
+  // 기존 인증 했던 부분들 커스텀 decorator로 메타 데이터 설정
+  // user.resolver
+  ...
+  @Query((returns) => User)
+  // @UseGuards(AuthGuard) // 가드 적용 false 리턴이면 해당 쿼리 request 중단
+  @Role(['Any'])
+  // 커스텀 데코레이터로 meta 데이터 설정, meta데이터 없다면 글로벌 guard에서 로그인 필요없는 것으로 구분
+  me(@AuthUser() authedUser: User) {
+    return authedUser;
+  }
+
+  // @UseGuards(AuthGuard)
+  @Role(['Any'])
+  @Query((returns) => UserProfileOutput)
+  async userProfile(
+    @Args() userProfileInput: UserProfileInput,
+  ): Promise<UserProfileOutput> {
+    return await this.usersService.findById(userProfileInput.userId);
+  }
+  ...
+  ```
+
+- guard와 meta데이터로 요청 인증
+
+  ```{typescript}
+  @Injectable()
+  export class AuthGuard implements CanActivate {
+    // CanActivate 은 return true면
+    // request 계속 진행 시키고
+    // 아니면 request 중단 시킴
+
+    constructor(private readonly reflector: Reflector) {}
+
+    canActivate(context: ExecutionContext) {
+      const roles = this.reflector.get<AllowedRoles>(
+        'allowedRole',
+        context.getHandler(),
+      ); // 메타 데이터 읽어오기
+
+      if (!roles) {
+        // resolver에 role 메타데이터 설정 안되있으면 해당 req 허가
+        // 예 로그인 필요없는 경우의 요청들
+        return true;
+      }
+
+      const gqlContext = GqlExecutionContext.create(context).getContext();
+      // http 요청과 gql 형태 달라서 변형
+      const user: User = gqlContext['user'];
+      if (!user) {
+        // 유저 데이터가 없는 경우 req 거부
+        return false;
+      }
+
+      if (roles.includes('Any')) {
+        // Any 면 모두 허가
+        return true;
+      }
+
+      return roles.includes(user.role);
+      // 메타 데이터와 user의 role이 일치하는 경우만 true 리턴
+    }
+  }
+  ```
+
+### relation id
+
+- https://typeorm.io/#/decorator-reference/relationid
+- if you have a many-to-one category in your Post entity, you can have a new category id by marking a new property with @RelationId
+
+```{typescript}
+// restaurant.entity
+
+@Field((type) => User)
+@ManyToOne((type) => User, (user) => user.restaurants, {
+  onDelete: 'CASCADE',
+})
+owner: User;
+
+// 확실하게 관계 표명
+// loadRelationId나 relations 옵션으로 find 안해도 자동으로 relation id 가져다 준다
+@RelationId((restaurant: Restaurant) => restaurant.owner)
+ownerId: number;
+```
+
+### @EntityRepository
+
+- https://typeorm.io/#/decorator-reference/entityrepository
+- 커스텀 repository 만들기
+  ```{typescript}
+  @EntityRepository(Category)
+  export class CategoryRepository extends Repository<Category> {
+    async getOrCreate(name: string): Promise<Category> {
+      const categoryName = name.trim().toLowerCase();
+      const categorySlug = categoryName.replace(/ /g, '-');
+      let category = await this.findOne({ slug: categorySlug });
+      if (!category) {
+        category = await this.save(
+          this.create({ slug: categorySlug, name: categoryName }),
+        );
+      }
+      return category;
+    }
+  }
+  ```
+
+### Parent Decorator
+
+- GraphQL에서 Parent는 상위 항목 의미
+  ```{typescript}
+  {
+    parent{
+      children
+    }
+  }
+  ```
+- @Parent쓰면 상위 항목 이름 가지고 온다
+  ```{typescript}
+  @ResolveField((type) => Int)
+  restaurantCount(@Parent() category: Category): Promise<number> {
+    // @Parent 쓰면 restaurant count 필드의 부모인 category를 리턴해준다
+    return this.restaurantService.countRestaurants(category);
+  }
+  ```
+
+### typeOrm이 메서드로 지원하지 않는 SQL 문 만날 경우
+
+```{typescript}
+const [restaurants, totalResults] = await this.restaurants.findAndCount({
+        where: {
+          name: Raw((name) => `${name} ILIKE '%${query}%'`),
+          // sql Like 문
+          // typeOrm에는 대소문자 구분없음을 지원 안해주고 있다
+          // ILIKE 는 Insensitive Like
+          // 이런 경우 DB에 SQL문을 이용해서 직접 요청 해야한다
+          // `${name} ILIKE '%${query}%'` 직접 SQL문 입력
+        },
+        skip: (page - 1) * 25,
+        take: 25,
+      });
+```
+
+## #11 DISH AND ORDER CRUD
+
+### @ManyToMany 와 @JoinTable
+
+- https://typeorm.io/#/decorator-reference/manytomany
+- https://en.wikipedia.org/wiki/Many-to-many_(data_model)
+- https://siyoon210.tistory.com/26
+- ManyToMany : Many-to-many is a relation where A contains multiple instances of B, and B contain multiple instances of A
+- JoinTable : Used for many-to-many relations and describes join columns of the "junction" table. Junction table is a special, separate table created automatically by TypeORM with columns referenced to the related entities. 소유 하는 쪽에 데코레이터 써줘야한다
+- ManyToMany 관계는 중간에 junction table 필요
+  - junction table에 일대다 다대일 관계로 연결 되어있다
+- 소유 하는 쪽
+  - 철수가 여러 수업을 수강한다.(O)
+  - 국어, 영어, 수학은 철수를 수용 한다.(X)
+    -> 철수가 소유
+
+```{typescript}
+// order.entity.ts
+...
+@Field((type) => [Dish])
+@ManyToMany((type) => Dish)
+@JoinTable()
+// dish vs order 하면 order 가 소유하는 쪽이라 여기에 써줘야한다
+dishes: Dish[];
+...
+```
+
+### entity 작성 시 순서
+
+1. 먼저 필요한 property부터 쓰고
+2. enumType 있으면 등록하고
+3. GraphQL 스키마 작성
+
+- nullable 이면 nullable true 로
+
+4. typeOrm 스키마 작성
+
+- GraphQL이랑 크게 다르지 않는 것 column 으로
+- 관계 필요한 항목 relations 요소 작성
+
+  - orders <-> user : user 하나가 많은 order를 가질 수 있음
+    orders에선 ManyToOne
+    user에선 OneToMany
+    onDelete 옵션 user지워져도 주문이 남아있어야하니 SET NULL
+    user는 customer or driver
+
+  - orders <-> restaurant : restaurant하나가 많은 order를 가짐
+    위와 같은 과정
+
+  - orders <-> dishes : order 도 많은 dish 가질수있고 dish도 여러 order 가질수 있다
+    Own 하는 쪽에 @JoinTable() 써줘야한다
+    order 에서 테이블로 일대다 관계 형성
+    테이블 에서 dish로 다대일 관계 형성
+
+## #12 ORDER SUBSCRIPTIONS
+
+- SUBSCRIPTIONS
+  - resolver에서 변경 사항이나 업데이트를 수신하게 해준다
+  - 리얼타임 처리
+- graphql-subscriptions
+  - https://www.npmjs.com/package/graphql-subscriptions
+  ```
+  npm i graphql-subscriptions
+  ```
+
+### init 설정
+
+```{typescript}
+// resolver.ts
+const pubSub = new PubSub();
+// PubSub은 Publish and Subscription
+
+@Resolver(_ => test)
+  ...
+  @Subscription((returns) => String)
+  // 뭘 리턴하냐 에 따라 달라진다
+  readyPotatoes() {
+    // 여기선 String을 리턴하지 않고
+    // asyncIterator 를 리턴할거다
+    return pubSub.asyncIterator('hotPotatoes');
+  }
+  ...
+```
+
+```{typescript}
+// graphQL 요청
+subscription{
+  hotPotatoes
+}
+// 결과, web socket 필요
+{
+  "error": "Could not connect to websocket endpoint ws://localhost:3001/graphql. Please check if the endpoint url is correct."
+}
+```
+
+```{typescript}
+// app.module
+GraphQLModule.forRoot({
+    ..
+    installSubscriptionHandlers: true,
+    // 이렇게 하면 GraphQL 서버 웹소켓 기능할 수 있다
+    ...
+  }),
+```
+
+```{typescript}
+{
+  "error": {
+    "message": "Cannot read property 'user' of undefined"
+  }
+}
+
+GraphQLModule.forRoot({
+    ...
+    installSubscriptionHandlers: true,
+    context: ({ req }) => ({ user: req['user'] }),
+    // 여기서 나는 에러
+  }),
+
+//
+// Subscription 을하려는 순간 Http 를 안거치고 바로 ws 연결을 하고있음
+// req 열어보면 undefined
+// ws은 req가 없다 connection가 있다
+```
+
+```{typescript}
+// app.module
+GraphQLModule.forRoot({
+    ...
+    installSubscriptionHandlers: true,
+    context: ({ req, connection }) => {
+      if (req) { // 분기로 http랑 ws 나눠줌
+        return { user: req['user'] };
+      } else {
+        console.log(connection);
+      }
+    },
+  }),
+// 리스닝 진행됨 확인 가능
+
+// http는 req 마다 헤더에 넣어서 보내지만
+// ws는 또 http와 다르게 연결 시작할 때 connection에 토큰을 딱 한번 보낸다
+```
+
+- 설정한 subscription 트리거 작동시키기
+
+  ```{typescript}
+  // resolver.ts
+  @Mutation((returns) => Boolean)
+  potatoReady() {
+    pubSub.publish('hotPotatos', { readyPotatoes: 'Your potato love you' });
+    // 첫번째는 트리거 지정한 이름, 두번째는 payload 인데 object 형태
+    // key 는 메소드 이름 value는 보내고 싶은 데이터
+    return true;
+  }
+
+  @Subscription((returns) => String)
+  readyPotatoes() {
+    return pubSub.asyncIterator('hotPotatos');
+    // 'hotPotatos' 를 트리거로 지정
+  }
+  ```
+
+  ```{typescript}
+  // 구독
+  subscription{
+    readyPotatoes
+  }
+
+  // 어딘가에서 트리거 발생
+  mutation{
+    potatoReady
+  }
+
+  // 트리거 발생시마다 구독되어 있는 곳에 리턴
+  {
+    "data": {
+      "readyPotatoes": "Your potato love you"
+    }
+  }
+  ```
+
+### Subscription Authentication
+
+- Role, AuthUser 데코레이터 추가
+
+  ```
+  // orders.resolver.ts
+  @Subscription((returns) => String)
+  @Role(['Any'])
+  readyPotatoes(@AuthUser() user: User) {
+    // 여기선 String을 리턴하지 않고
+    // asyncIterator 를 리턴할거다
+    return pubSub.asyncIterator('hotPotatos');
+    // 'hotPotatos' 를 트리거로 지정
+  }
+  ```
+
+- 토큰으로 Authentication 하고 싶지만 우리의 jwtMiddleware는 http 로직 안에서만 동작하도록 설계 되어 있다
+
+```{typescript}
+// 첫번째로 JwtMiddleware 제거 하자
+
+// implements NestModule
+export class AppModule {
+  // 루트모듈에 미들웨어 설치
+  // 미들웨어는 어떤 모듈이나 설치 가능
+  // configure(consumer: MiddlewareConsumer) {
+  //   consumer.apply(JwtMiddleware).forRoutes({
+  //     path: '/graphql',
+  //     method: RequestMethod.POST,
+  //   });
+  // 특정 루트 특정 메서드 미들웨어 지정 가능
+  // consumer.apply(JwtMiddleware).exclude({
+  //   path: '/블라블라',
+  //   method: RequestMethod.ALL,
+  // });
+  // 제외도 가능
+  // }
+}
+```
+
+- jwtMiddleware 를 삭제하면 문제점이 jwtMiddleware에서 헤더에 있는 토큰으로 DB 검색을 해서 일치하는 유저 정보를 중간에 req에 넣어 주고 있었는데 이게 사라진다
+
+- 두번째 방어선이 guard는 http와 ws 둘 모두에서 동작 되고 에러를 낸다
+
+  - AuthGuard에는 모든 req가 지나간다
+
+  - 첫번째 방어선인 jwtMiddleware 이 사라지고
+  - 두번째인 guard
+
+    ```{typescript}
+    // auth.guard
+
+    const gqlContext = GqlExecutionContext.create(context).getContext();
+    console.log('gql', gqlContext);
+    // http 연결시 req 정보 뜨고
+    // ws 연결시는 {req: undefined}
+    ```
+
+    ```{typescript}
+    // app.module
+
+    // jwtMiddleware를 못쓰기 때문에 GraphQL context 에 직접 토큰 넣어주자
+    GraphQLModule.forRoot({
+      ....
+      context: ({ req, connection }) => {
+        const TOKEN_KEY = 'x-jwt';
+        if (req) {
+          return { token: req.headers[TOKEN_KEY] };
+          // return { user: req['user'] };
+          // ws 랑 같이 쓸때는 jwtMiddleware가 직접 토큰으로 user 찾아서 못 넣어주므로 토큰을 보내자
+        } else if (connection) {
+          return { token: connection.context[TOKEN_KEY] };
+          // connection.context 에 토큰 들어있음
+          // context 는 http의 헤더랑 비슷
+        }
+      },
+    }),
+
+    ```
+
+- guard 안에서 jwtMiddleware 에서 하던 로직처리 해야한다
+
+  ```{typescript}
+  @Injectable()
+  // Guard 를 이용하면 Endpoint 보호 가능
+  export class AuthGuard implements CanActivate {
+    ...
+
+    constructor(
+      private readonly reflector: Reflector,
+      private readonly jwtService: JwtService,
+      private readonly userService: UsersService, // module에  UsersModule import 필요, Service 쓰려면 export 하는 Module을 추가해야한다
+    ) {}
+
+    async canActivate(context: ExecutionContext) {
+      const roles = this.reflector.get<AllowedRoles>(
+        'allowedRole',
+        context.getHandler(),
+      ); // 요청 마다 설정된 메타 데이터 읽어오기
+
+      if (!roles) {
+        // resolver에 role 메타데이터 설정 안되있으면 해당 req 허가
+        // 예 로그인 필요없는 경우의 요청들
+        return true;
+      }
+
+      const gqlContext = GqlExecutionContext.create(context).getContext();
+      const token = gqlContext.token;
+
+      // jwt 인증 로직 추가!
+      if (token) {
+        const decoded = this.jwtService.verify(token.toString());
+
+        if (typeof decoded === 'object' && decoded.hasOwnProperty('id')) {
+          const { user } = await this.userService.findById(decoded['id']);
+          if (!user) {
+            // 유저 데이터가 없는 경우 req 거부
+            return false;
+          }
+          if (roles.includes('Any')) {
+            // Any 면 모두 허가
+            return true;
+          }
+          return roles.includes(user.role);
+        }
+      } else {
+        return false;
+      }
+
+      // 메타 데이터와 user의 role이 일치하는 경우만 true 리턴
+    }
+  }
+  ```
+
+- 다음 문제는 AuthUser 안에서 터지게 된다
+
+  ```{typescript}
+  // auth-user.decorator
+  export const AuthUser = createParamDecorator(
+    (data: unknown, context: ExecutionContext) => {
+      const gqlContext = GqlExecutionContext.create(context).getContext();
+      // http 요청과 gql 형태 달라서 변형;
+      const user = gqlContext['user'];
+      // 더이상 user 존재 하지 않는다
+      return user;
+    },
+  );
+  ```
+
+  ```{typescript}
+  // auth.guard
+  async canActivate(context: ExecutionContext) {
+    ...
+
+    const gqlContext = GqlExecutionContext.create(context).getContext();
+    const token = gqlContext.token;
+    if (token) {
+      ...
+        gqlContext['user'] = user; // graphql context 안에 user 넣어줘야한다
+       ...
+    } else {
+      return false;
+    }
+  }
+  ```
+
+- 정리
+  - JwtMiddleware -> AuthGuard -> 데코레이터 순으로 요청 지나간다
+
+### PubSub
+
+- PubSub은 딱 하나만 존재해야된다
+- 공통 모듈로 이동시키기
+
+  ```
+  // common.constant
+  export const PUB_SUB = 'PUB_SUB';
+
+  // common.module
+  @Global()
+  @Module({
+    exports: [PUB_SUB],
+    providers: [
+      {
+        provide: PUB_SUB,
+        useValue: new PubSub(),
+      },
+    ],
+  })
+
+  // order.resolver
+  export class OrderResolver {
+    constructor(
+      ...
+      @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    ) {} // 추가
+  ```
+
+- 유의점
+  - PubSub은 오직 서버 하나에서만 동작
+  - 서버가 여러개 있으면 별도의 PubSub 서버가 필요함
+    - https://www.npmjs.com/package/graphql-redis-subscriptions
+
+### Subscription Filter
+
+- 모든 update에 대응할 필요가 없다
+  - 내 주문 정보만 보고싶지 다른 사람 것까지 받고싶지 않다
+- 구독자 알림 여부 옵션
+- 설정
+
+  ```
+  @Mutation((returns) => Boolean)
+  async potatoReady(@Args('potatoId') potatoId: number) {
+    await this.pubSub.publish('hotPotatos', {
+      readyPotatoes: potatoId,
+    });
+    return true;
+  }
+
+  @Subscription((returns) => String, {
+    filter: ({ readyPotatoes }, { potatoId }, context) => {
+      // payload는 publish 할때 보낸 데이터
+      // variables은 subscription 할때 처음 지정한 인자
+      // context는 gql context
+
+      // 세개를 활용하면 filter 활용 가능하다
+      return readyPotatoes === potatoId;
+    },
+  })
+
+  @Role(['Any'])
+  readyPotatoes(@Args('potatoId') potatoId: number) {
+    return this.pubSub.asyncIterator('hotPotatos');
+  }
+  ```
+
+- potatoId 가 일치할때 만 publish된 데이터 수신
+
+### Subscription Resolve
+
+- 최종적으로 구독자가 받는 response 형태 변경 가능 옵션
+- asyncIterator 가 리턴하는 값
+- 설정
+  ```{typescript}
+  @Subscription((returns) => String, {
+    ...
+    resolve: ({ readyPotatoes }) => {
+      return `Your potato with the id ${readyPotatoes}`;
+    },
+  })
+  @Role(['Any'])
+  readyPotatoes(@Args('potatoId') potatoId: number) {
+    return this.pubSub.asyncIterator('hotPotatos');
+  }
+  ```
+
+### eager relation
+
+```{typescript}
+const order = await this.orders.findOne(orderId, {
+        relations: ['restaurant', "customer", "driver"],
+      });
+```
+
+- order 정보 받아올때 customer restaurants driver relation 이 필요하다
+
+- eager relation은 db에서 entity를 load할때 자동으로 가지고 오는 relation을 의마한다
+- lazy relation은 entity의 해당 프로퍼티 직접 접근해야지 비동기로 가지고오는 relation이다
+  ```{typescript}
+  await order.customer // 이렇게 접근해야 가지고 온다
+  ```
+
+```
+@Field((type) => User, { nullable: true })
+  @ManyToOne((type) => User, (user) => user.orders, {
+    ...
+    eager: true,
+  })
+  customer?: User;
+
+  @Field((type) => User, { nullable: true })
+  @ManyToOne((type) => User, (user) => user.rides, {
+    ...
+    eager: true,
+  })
+  driver?: User;
+
+  @Field((type) => Restaurant, { nullable: true })
+  @ManyToOne((type) => Restaurant, (restaurant) => restaurant.orders, {
+    ...
+    eager: true,
+  })
+  restaurant?: Restaurant;
+
+  @Field((type) => [OrderItem])
+  @ManyToMany((type) => OrderItem, { eager: true })
+  @JoinTable()
+  items: OrderItem[];
+```
+
+- 관계를 계속 파고들어가면서 계속 소환하면 db 폭파된다
+  - N+1 problem으로 방어할 수 있다
