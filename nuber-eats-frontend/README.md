@@ -60,6 +60,48 @@
     - styles.css에 모든 tailwind 마크업이 들어가있어서 엄청 큰데 나중에 production 모드로 빌드하면 안 쓰는건 사라진다
     - styles.css import 해서 쓰면된다
 
+- 주요 class
+
+  - h-screen : 전체 화면
+  - px py pt pb ... : padding x y top bottom 수치
+  - mx my mt mb ... : padding x y top bottom 수치
+  - w- : width
+  - max-w- : max width
+  - rounded : 모서리 라운드 처리
+  - flex-col : flex column 처리
+  - shadow : shadow 처리
+  - hover, focus : state 처리 바로 가능
+  - border- : tailwind는 세심해서 다 따로 설정 필요 border-green-600 같은 경우는 딱 border color만 설정 border 같은거 써줘서 width 적용 되도록 해야함
+
+- 커스텀 클래스
+
+  - 빌드시 만들어 넣어서 빌드시켜준다
+
+  ```
+  @tailwind base;
+  @tailwind components;
+
+  /* 커스텀 스타일 */
+  .input {
+    @apply bg-gray-100 shadow-inner focus:ring-2  focus:ring-green-600 focus:ring-opacity-90 focus:outline-none py-3 px-5 rounded-lg;
+  }
+
+  .btn {
+    @apply py-3 px-5 bg-gray-800 text-white  text-lg rounded-lg focus:outline-none hover:opacity-90;
+  }
+
+  @tailwind utilities;
+
+  ```
+
+  ```
+  // jsx 안에 이렇게 넣으면 먹는다
+  <input
+    ...
+    className="input"
+  />
+  ```
+
 ### Apollo
 
 - https://www.apollographql.com/docs/react/get-started/
@@ -252,12 +294,19 @@ npm install react-hook-form
 ```
 import React from "react";
 import { useForm } from "react-hook-form";
+import { isLoggedInVar } from "../apollo";
+
+interface IForm {
+  email: string;
+  password: string;
+}
 
 export const LoggedOutRouter = () => {
-  const { register, watch, handleSubmit, errors } = useForm();
+  const { register, watch, handleSubmit, errors } = useForm<IForm>();
+  // watch 쓰면 submit 된 object 반환해준다
+  // errors 에는 어떤 부분이 틀렸는지 반환해준다
   const onSubmit = () => {
     console.log(watch());
-    // watch 쓰면 submit 된 object 반환해준다
   };
   const onInvalid = () => {
     console.log("cant create account");
@@ -277,6 +326,15 @@ export const LoggedOutRouter = () => {
             type="email"
             placeholder="email"
           />
+          {/* 에러 활용해서 경고 메시지 띄우기 부분 */}
+          {errors.email?.message && (
+            <span className="font-bold text-red-600">
+              {errors.email?.message}
+            </span>
+          )}
+          {errors.email?.type === "pattern" && (
+            <span className="font-bold text-red-600">Only gmail allowed</span>
+          )}
         </div>
         <div>
           <input
@@ -292,5 +350,6 @@ export const LoggedOutRouter = () => {
     </div>
   );
 };
+
 
 ```
