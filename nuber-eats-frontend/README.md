@@ -350,6 +350,73 @@ export const LoggedOutRouter = () => {
     </div>
   );
 };
-
-
 ```
+
+### Mutation
+
+- 쿼리문 선언
+  ```
+  const LOGIN_MUTATION = gql`
+    mutation PotatoMutation($email: String!, $password: String!) {
+      login(input: { email: $email, password: $password }) {
+        ok
+        token
+        error
+      }
+    }
+  `; // mutation 뒤에 붙은 이름과 변수 선언은 오직 프론트앤드를 위한것
+  // $를 붙이면 apollo가 변수라고 확인
+  ```
+- hook
+  ````
+  const [loginMutation, { loading, error, data }] = useMutation(LOGIN_MUTATION);
+  // loginMutation은 트리거 함수, data는 mutation으로 반환되는 데이터
+  ```
+  ````
+
+### Apollo Tooling
+
+- https://github.com/apollographql/apollo-tooling
+- Apollo Tooling를 이용해서 DTO가 스키마가 되고 프론트앤드를 위한 type 정보를 얻고 type 으로 어떤 정보를 backend로 보내고 어떤 정보를 받아올지 확신 가능
+- apollo.config.js
+  - https://www.apollographql.com/docs/devtools/apollo-config/
+  ```
+  module.exports = {
+    client: {
+      includes:["./src/**/*.tsx"],
+      tagName:"gql",
+      // gql 쓸때마다 type을 가지고온다
+      service: "nuber-eats-backend",
+      url:"http://localhost:4000/graphql"
+    }
+  };
+  ```
+- codegen 이용해서 생성하고 mutation 에 타입적용하자
+
+  ```
+  // apollo.config.js
+
+  module.exports = {
+    client: {
+      includes: ["./src/**/*.tsx"],
+      tagName: "gql",
+      service: {
+        name: "nuber-eats-backend",
+        url: "http://localhost:4000/graphql",
+      },
+    },
+  };
+
+  ```
+
+  ```
+  npx apollo client:codegen src/__generated__ --target=typescript --outputFlat
+  ```
+
+  ```
+  const [loginMutation, { loading, error, data }] = useMutation<PotatoMutation, PotatoMutationVariables>(
+    LOGIN_MUTATION
+  );
+
+  // 이렇게 활용 가능
+  ```
