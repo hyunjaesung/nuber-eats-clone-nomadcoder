@@ -77,3 +77,165 @@ export const client = new ApolloClient({
   cache: new InMemoryCache()
 });
 ```
+
+- tsx prettier 안먹을때
+  ```
+  "editor.formatOnSave": true,
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    }
+  ```
+
+## #15 AUTHENTICATION
+
+### Local-only fields
+
+- https://www.apollographql.com/docs/react/local-state/managing-state-with-field-policies/#gatsby-focus-wrapper
+- 아폴로의 캐싱 기능
+- 아폴로가 서버와 달리 local state 를 가지게되어 많은 정보를 전역적으로 활용 가능하다 -> 리덕스 대체
+
+- 설정
+
+  ```
+  // apollo.ts
+
+  export const client = new ApolloClient({
+  uri: 'http://localhost:4000/graphql',
+  // 백엔드 주소
+  cache: new InMemoryCache({
+    typePolicies:{
+      Query:{
+        fields:{
+          isLoggedIn:{
+            read() { // field 값을 반환하는 함수
+              // 로직
+              return false;
+            }
+          }
+        }
+      }
+    }
+  })
+  });
+  ```
+
+  ```
+  // App.tsx
+  import * as React from "react";
+  import { LoggedOutRouter } from "./router/loggedOutRouter";
+  import { gql, useQuery } from '@apollo/client'
+
+  const IS_LOGGED_IN = gql`
+    query isLoggedIn {
+      isLoggedIn @client
+    }
+  `;
+  // isLoggedIn @client isLoggedIn만
+  // apollo 필드 설정한거랑 똑같으면 된다
+
+  function App() {
+    const { data } = useQuery(IS_LOGGED_IN);
+    console.log(data);
+    // {isLoggedIn: false} 브라우저 콘솔에서 확인가능
+    return (
+      <LoggedOutRouter />
+    );
+  }
+
+  export default App;
+  ```
+
+  ```
+  // 수정 원할시
+  const cache = new InMemoryCache();
+
+  const client = new ApolloClient({
+    uri: 'http://localhost:4000/graphql',
+    cache
+  });
+
+  cache.writeQuery({ // query 수정
+    query: IS_LOGGED_IN,
+    data: {
+      isLoggedIn: !!localStorage.getItem("token"),
+    },
+  });
+  ```
+
+- reactive variable 방법
+
+  - https://www.apollographql.com/docs/react/local-state/reactive-variables/
+  - 생성
+
+    ```
+    import { makeVar } from '@apollo/client';
+
+    const cartItemsVar = makeVar([]);
+    ```
+
+    - 위의 gql 방법 안쓰고도 전역적으로 참조가능한 변수 생성 가능
+      - 저 변수 수정하면 모든 graphql 데이터 자동으로 업데이트 된다
+    - reactive variable 설정
+
+      ```
+      // apollo.ts
+
+      import { ApolloClient, InMemoryCache, makeVar } from "@apollo/client";
+
+      export const isLoggedInVar = makeVar(false);
+
+      export const client = new ApolloClient({
+        uri: "http://localhost:4000/graphql",
+        // 백엔드 주소
+        cache: new InMemoryCache({
+          typePolicies: {
+            Query: {
+              fields: {
+                isLoggedIn: {
+                  read() {
+                    // field 값을 반환하는 함수
+                    // 로직
+                    return isLoggedInVar();
+                  },
+                },
+              },
+            },
+          },
+        }),
+      });
+
+      // loggedOutRouter
+      import React from "react";
+      import { isLoggedInVar } from "../apollo";
+      export const LoggedOutRouter = () => {
+        const onClick = () => {
+          isLoggedInVar(true); // 이렇게 만 해주면 된다
+        };
+        return (
+          <div>
+            <h1>loggedout</h1>
+            <button onClick={onClick}>click to Login</button>
+          </div>
+        );
+      };
+      ```
+
+      ```
+      // App.tsx
+      import * as React from "react";
+      import { LoggedOutRouter } from "./router/loggedOutRouter";
+      import { gql, useQuery, useReactiveVar } from "@apollo/client";
+      import { LoggedInRouter } from "./router/loggedInRouter";
+      import { isLoggedInVar } from "./apollo";
+
+      function App() {
+        const isLoggedIn = useReactiveVar(isLoggedInVar); // gql 안쓰고 가져다 쓸 수 있다
+
+        return isLoggedIn ? <LoggedInRouter /> : <LoggedOutRouter />;
+      }
+
+      export default App;
+      ```
