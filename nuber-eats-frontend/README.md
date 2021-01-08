@@ -379,18 +379,9 @@ export const LoggedOutRouter = () => {
 - https://github.com/apollographql/apollo-tooling
 - Apollo Tooling를 이용해서 DTO가 스키마가 되고 프론트앤드를 위한 type 정보를 얻고 type 으로 어떤 정보를 backend로 보내고 어떤 정보를 받아올지 확신 가능
 - apollo.config.js
+
   - https://www.apollographql.com/docs/devtools/apollo-config/
-  ```
-  module.exports = {
-    client: {
-      includes:["./src/**/*.tsx"],
-      tagName:"gql",
-      // gql 쓸때마다 type을 가지고온다
-      service: "nuber-eats-backend",
-      url:"http://localhost:4000/graphql"
-    }
-  };
-  ```
+
 - codegen 이용해서 생성하고 mutation 에 타입적용하자
 
   ```
