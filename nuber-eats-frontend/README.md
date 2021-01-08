@@ -420,3 +420,36 @@ export const LoggedOutRouter = () => {
 
   // 이렇게 활용 가능
   ```
+
+- grapql 스키마 를 타입스크립트 타입으로
+  ```
+  // DTO를 이용한 grapql 스키마를 프론트 타입으로 쓸 수 있다
+  // 이렇게 스키마 타입을 쓰고 codegen을 하면 globalType으로 넣어준다
+  // 서버에서 DTO를 수정하면 바로 타입 에러가 나고 버그 찾을 수 있다
+  const LOGIN_MUTATION = gql`
+    mutation loginMutation($loginInput: LoginInput!) {
+      login(input: $loginInput) {
+        ok
+        token
+        error
+      }
+    }
+  `;
+  ```
+
+### useMutation
+
+```
+ const [loginMutation, { loading, error, data }] = useMutation<
+    loginMutation,
+    loginMutationVariables
+  >(LOGIN_MUTATION, {
+    // update
+    // A function used to update the cache after a mutation occurs
+    // 첫번째 인자로 캐쉬 인스턴스 두번째 인자로 data 가 들어간다
+    // onError
+    // 에러시에 동작하는 콜백
+    onCompleted: onCompleted,
+    // 완료시에 동작하는 콜백, argument로 data 들어간다
+  });
+```
