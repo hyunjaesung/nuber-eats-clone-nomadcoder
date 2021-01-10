@@ -10,7 +10,8 @@ import nuberLogo from "../images/logo.svg";
 import { Button } from "../components/button";
 import { Link } from "react-router-dom";
 import Helmet from "react-helmet";
-import { isLoggedInVar } from "../apollo";
+import { authTokenVar, isLoggedInVar } from "../apollo";
+import { LOCALSTORAGE_TOKEN } from "../constants";
 interface ILoginForm {
   email: string;
   password: string;
@@ -47,8 +48,9 @@ export const Login = () => {
     const {
       login: { ok, token },
     } = data;
-    if (ok) {
-      console.log(token);
+    if (ok && token) {
+      localStorage.setItem(LOCALSTORAGE_TOKEN, token);
+      authTokenVar(token);
       isLoggedInVar(true);
     }
   };
@@ -96,7 +98,7 @@ export const Login = () => {
           <input
             ref={register({
               required: "Email is required",
-              pattern: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
+              pattern: /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
             })}
             name='email'
             required

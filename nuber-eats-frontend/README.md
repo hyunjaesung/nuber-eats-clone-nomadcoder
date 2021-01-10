@@ -62,9 +62,10 @@
 
 - 주요 class
 
-  - h-screen : 전체 화면
+  - h- : 높이, screen 하면 100vh
   - px py pt pb ... : padding x y top bottom 수치
   - mx my mt mb ... : padding x y top bottom 수치
+  - bg- : background 색
   - w- : width
   - max-w- : max width
   - rounded : 모서리 라운드 처리
@@ -137,6 +138,7 @@ export const client = new ApolloClient({
 
 - https://www.apollographql.com/docs/react/local-state/managing-state-with-field-policies/#gatsby-focus-wrapper
 - 아폴로의 캐싱 기능
+- 클라이언트 에서만 쓰는 데이터를 아폴로 서버에 따로 저장 -> 서버에 보내는거 아님 유의, 서버에 보낼 graphql문은 query 문 작성 필요
 - 아폴로가 서버와 달리 local state 를 가지게되어 많은 정보를 전역적으로 활용 가능하다 -> 리덕스 대체
 
 - 설정
@@ -352,6 +354,8 @@ export const LoggedOutRouter = () => {
 };
 ```
 
+- form 안에 button 태그가 있으면 default 로 type="submit" 상태이다 type="button" 으로 적어주면 submit 동작안한다
+
 ### Mutation
 
 - 쿼리문 선언
@@ -443,4 +447,97 @@ export const LoggedOutRouter = () => {
     onCompleted: onCompleted,
     // 완료시에 동작하는 콜백, argument로 data 들어간다
   });
+```
+
+### 토큰 헤더에 넣어서 보내기
+
+- https://www.apollographql.com/docs/link/links/http/#gatsby-focus-wrapper
+- https://www.apollographql.com/docs/react/networking/authentication/
+
+```
+// apollo.tsx
+
+const token = localStorage.getItem(LOCALSTORAGE_TOKEN);
+export const authTokenVar = makeVar(token);
+
+const httpLink = createHttpLink({
+  uri: "http://localhost:4000/graphql",
+});
+
+const authLink = setContext((_, { headers }) => {
+  return {
+    headers: {
+      ...headers,
+      "x-jwt": authTokenVar() || "",
+    },
+  };
+}); // Client의 모든 req의 context 변경
+
+export const client = new ApolloClient({
+  link: authLink.concat(httpLink),
+  // 백엔드 주소
+  ....
+  }),
+});
+
+```
+
+```
+// login.tsx
+
+ const onCompleted = (data: loginMutation) => {
+    const {
+      login: { ok, token },
+    } = data;
+    if (ok && token) {
+      localStorage.setItem(LOCALSTORAGE_TOKEN, token);
+      authTokenVar(token);
+      isLoggedInVar(true);
+    }
+  };
+
+  const [loginMutation, { data: loginMutationResult, loading }] = useMutation<
+    loginMutation,
+    loginMutationVariables
+  >(LOGIN_MUTATION, {
+    onCompleted: onCompleted,
+    // 완료시에 동작하는 콜백, argument로 data 들어간다
+  });
+  // loginMutation은 트리거 함수, data는 mutation으로 반환되는 데이터
+```
+
+```
+// LoggedInRouter.tsx
+
+import { gql, useQuery } from "@apollo/client";
+import React from "react";
+import { isLoggedInVar } from "../apollo";
+
+const ME_QUERY = gql`
+  query meQuery {
+    me {
+      id
+      email
+      role
+      verified
+    }
+  }
+`;
+
+export const LoggedInRouter = () => {
+  const { data, loading, error } = useQuery(ME_QUERY);
+  if (!data || loading || error) {
+    return (
+      <div className='h-screen flex justify-center items-center'>
+        <span className='font-medium text-xl tracking-wide'>Loading...</span>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <h1>{data.me.email}</h1>
+    </div>
+  );
+};
+
 ```

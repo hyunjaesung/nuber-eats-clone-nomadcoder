@@ -1,14 +1,46 @@
+import { gql, useQuery } from "@apollo/client";
 import React from "react";
-import { isLoggedInVar } from "../apollo";
+import {
+  BrowserRouter as Router,
+  Redirect,
+  Route,
+  Switch,
+} from "react-router-dom";
+import { Restaurants } from "../pages/client/restaurants";
+
+const ClientRoutes = [
+  <Route path='/' exact>
+    <Restaurants />
+  </Route>,
+];
+
+const ME_QUERY = gql`
+  query meQuery {
+    me {
+      id
+      email
+      role
+      verified
+    }
+  }
+`;
 
 export const LoggedInRouter = () => {
-  const onClick = () => {
-    isLoggedInVar(false); // 이렇게 만 해주면 된다
-  };
+  const { data, loading, error } = useQuery(ME_QUERY);
+
+  if (!data || loading || error) {
+    return (
+      <div className='h-screen flex justify-center items-center'>
+        <span className='font-medium text-xl tracking-wide'>Loading...</span>
+      </div>
+    );
+  }
   return (
-    <div>
-      <h1>loggedIn</h1>
-      <button onClick={onClick}>click to Log out</button>
-    </div>
+    <Router>
+      <Switch>
+        {data.me.role === "Client" && ClientRoutes}
+        <Redirect from='/potato' to='/' />
+      </Switch>
+    </Router>
   );
 };
