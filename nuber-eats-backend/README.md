@@ -168,6 +168,7 @@ app.useGlobalPipes(new ValidationPipe());
   ```
 
   ```
+  // mysql 쓸때 옵션
   {
     "type": "mysql",
     "host": "localhost",

@@ -6,7 +6,11 @@ import {
   loginMutation,
   loginMutationVariables,
 } from "../__generated__/loginMutation";
-
+import nuberLogo from "../images/logo.svg";
+import { Button } from "../components/button";
+import { Link } from "react-router-dom";
+import Helmet from "react-helmet";
+import { isLoggedInVar } from "../apollo";
 interface ILoginForm {
   email: string;
   password: string;
@@ -29,7 +33,15 @@ const LOGIN_MUTATION = gql`
 // $를 붙이면 apollo가 프론트 변수라고 확인
 
 export const Login = () => {
-  const { register, getValues, errors, handleSubmit } = useForm<ILoginForm>();
+  const {
+    register,
+    getValues,
+    errors,
+    handleSubmit,
+    formState,
+  } = useForm<ILoginForm>({
+    mode: "onChange",
+  });
 
   const onCompleted = (data: loginMutation) => {
     const {
@@ -37,6 +49,7 @@ export const Login = () => {
     } = data;
     if (ok) {
       console.log(token);
+      isLoggedInVar(true);
     }
   };
 
@@ -68,14 +81,23 @@ export const Login = () => {
     }
   };
   return (
-    <div className='h-screen flex items-center justify-center bg-gray-800'>
-      <div className='bg-white w-full max-w-lg pt-10 pb-7 rounded-lg text-center'>
-        <h3 className='text-2xl text-gray-800'>Log In</h3>
+    <div className='h-screen flex items-center flex-col mt-10 lg:mt-28'>
+      <Helmet>
+        <title>Login | Nuber Eats</title>
+      </Helmet>
+      <div className='w-full max-w-screen-sm flex flex-col px-5 items-center'>
+        <img src={nuberLogo} className='w-52 mb-10' />
+        <h4 className='w-full font-medium text-left text-3xl mb-5'>
+          Welcome back
+        </h4>
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className='grid gap-3 mt-5 px-5'>
+          className='grid gap-3 mt-5 w-full mb-5'>
           <input
-            ref={register({ required: "Email is required" })}
+            ref={register({
+              required: "Email is required",
+              pattern: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
+            })}
             name='email'
             required
             type='email'
@@ -85,8 +107,11 @@ export const Login = () => {
           {errors.email?.message && (
             <FormError errorMessage={errors.email?.message} />
           )}
+          {errors.email?.type === "pattern" && (
+            <FormError errorMessage={"Please enter a valid email"} />
+          )}
           <input
-            ref={register({ required: "Password is required", minLength: 10 })}
+            ref={register({ required: "Password is required" })}
             required
             name='password'
             type='password'
@@ -99,12 +124,22 @@ export const Login = () => {
           {errors.password?.type === "minLength" && (
             <FormError errorMessage='Password must be more than 10 chars.' />
           )}
-          <button className='mt-3 btn'>
-            {loading ? "Loading..." : "Log In"}
-          </button>
+          <Button
+            canClick={formState.isValid}
+            loading={loading}
+            actionText={"Log in"}
+          />
           {loginMutationResult?.login.error && (
             <FormError errorMessage={loginMutationResult.login.error} />
           )}
+          <div>
+            New to Nuber?{" "}
+            <Link
+              to='/create-account'
+              className='text-lime-600 hover:underline'>
+              Create an Account
+            </Link>
+          </div>
         </form>
       </div>
     </div>
