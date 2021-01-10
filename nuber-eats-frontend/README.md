@@ -591,6 +591,7 @@ export const LoggedInRouter = () => {
             verified: true,
           },
         });
+        history.push("/");
       }
     };
 
@@ -610,7 +611,7 @@ export const LoggedInRouter = () => {
           },
         },
       });
-    }, []);
+    }, [verifyEmail]);
 
     return (
       <div className='mt-52 flex flex-col items-center justify-center'>
