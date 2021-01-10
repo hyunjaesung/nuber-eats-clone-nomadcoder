@@ -6,7 +6,7 @@ import { isLoggedInVar } from "./apollo";
 
 function App() {
   const isLoggedIn = useReactiveVar(isLoggedInVar); // gql 안쓰고 가져다 쓸 수 있다
-  console.log(isLoggedIn);
+
   return isLoggedIn ? <LoggedInRouter /> : <LoggedOutRouter />;
 }
 
