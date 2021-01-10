@@ -12,6 +12,6 @@ const ME_QUERY = gql`
   }
 `;
 
-export const useMe = () => {
+export const useMe = (s: string = "") => {
   return useQuery<meQuery>(ME_QUERY);
 };

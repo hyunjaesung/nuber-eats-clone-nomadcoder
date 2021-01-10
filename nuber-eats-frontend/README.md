@@ -284,6 +284,14 @@ export const client = new ApolloClient({
       export default App;
       ```
 
+- 대충의 원리
+  - useQuery에 grapQL query 문을 넣으면 해당 query에 대해서 옵저버를 생성
+  - 리액트 컴포넌트는 Apollo Client 캐시를 통해 query의 결과 값을 구독하게 된다
+    - query 문 호출로 api 데이터 를 가지고 온다고 할때
+    - apollo 가 호출해서 결과 값을 Apollo Client에 넣고 캐싱하게 되고 그 query를 구독하고 있는 리액트 컴포넌트에 해당 캐싱 값을 넣어주게 된다
+  - 캐싱 값만 writeFragment 로 업데이트 하게 되어도 리액트 컴포넌트들 리렌더가 가능하고 refetch로 해당 query 문 호출 다시 해서 해당 query의 캐싱 값 전체 업데이트 해도 리액트 컴포넌트가 리렌더 된다.
+  - Apollo Client로 캐싱은 서버 데이터와 상관없는 Local 데이터도 가능하다
+
 ### React Hook Form
 
 - https://react-hook-form.com/api
@@ -622,4 +630,66 @@ export const LoggedInRouter = () => {
       </div>
     );
   };
+  ```
+
+### editProfile 페이지
+
+- 이메일 변경되면 다시 verify 하게 만들어야한다
+
+  - 첫번째 방법은 변경 할 때 그 부분만 writeFragment로 업데이트를 해주는 것
+  - 두번째 방법은 useQuery의 refetch 를 써서 query 를 refetch 하는 것
+    - 이 함수를 호출하면 query 를 다시 fetch 해준다
+    - 캐쉬가 자동으로 업데이트 된다
+
+  ```
+  // editProfile.tsx
+
+  const { data: userData, refetch } = useMe();
+  const client = useApolloClient();
+
+  const onCompleted = async (data: editProfile) => {
+    const {
+      editProfile: { ok },
+    } = data;
+    if (ok && userData) {
+      // update the cache
+      // 첫번째 방법
+      const {
+        me: { email: prevEmail, id },
+      } = userData;
+      const { email: newEmail } = getValues();
+
+      if (prevEmail !== newEmail) {
+        client.writeFragment({
+          id: `User:${id}`,
+          fragment: gql`
+            fragment EditedUser on User {
+              verified
+              email
+            }
+          `,
+          data: {
+            email: newEmail,
+            verified: false,
+          },
+        });
+      }
+
+      // 두번째 방법
+
+      // await refetch();
+      // editProfile 후 변경된 me query문 다시 호출
+      // 캐싱된 데이터 전부 바뀌고 헤더에 다시 경고문 뜨게 된다
+      // useMe 될 때마다 me query 문 호출 하게 되고 이 데이터로 뭔가 그리는데
+      // 두번째 방법은 한번 더 호출
+      // 더 느린 경우가 당연히 많다
+    }
+  };
+
+  const [editProfile, { loading }] = useMutation<
+    editProfile,
+    editProfileVariables
+  >(EDIT_PROFILE_MUTATION, {
+    onCompleted,
+  });
   ```

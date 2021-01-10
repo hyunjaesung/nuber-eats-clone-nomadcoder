@@ -1,6 +1,7 @@
-import { gql, useMutation } from "@apollo/client";
+import { gql, useApolloClient, useMutation } from "@apollo/client";
 import React from "react";
 import { useForm } from "react-hook-form";
+import { resolveProjectReferencePath } from "typescript";
 import { Button } from "../../components/button";
 import { useMe } from "../../hooks/useMe";
 import {
@@ -23,13 +24,45 @@ interface IFormProps {
 }
 
 export const EditProfile = () => {
-  const { data: userData } = useMe();
-  const onCompleted = (data: editProfile) => {
+  const { data: userData, refetch } = useMe();
+  const client = useApolloClient();
+
+  const onCompleted = async (data: editProfile) => {
     const {
       editProfile: { ok },
     } = data;
-    if (ok) {
+    if (ok && userData) {
       // update the cache
+      // 첫번째 방법
+      const {
+        me: { email: prevEmail, id },
+      } = userData;
+      const { email: newEmail } = getValues();
+
+      if (prevEmail !== newEmail) {
+        client.writeFragment({
+          id: `User:${id}`,
+          fragment: gql`
+            fragment EditedUser on User {
+              verified
+              email
+            }
+          `,
+          data: {
+            email: newEmail,
+            verified: false,
+          },
+        });
+      }
+
+      // 두번째 방법
+
+      // await refetch();
+      // editProfile 후 변경된 me query문 다시 호출
+      // 캐싱된 데이터 전부 바뀌고 헤더에 다시 경고문 뜨게 된다
+      // useMe 될 때마다 me query 문 호출 하게 되고 이 데이터로 뭔가 그리는데
+      // 두번째 방법은 한번 더 호출
+      // 더 느린 경우가 당연히 많다
     }
   };
 
