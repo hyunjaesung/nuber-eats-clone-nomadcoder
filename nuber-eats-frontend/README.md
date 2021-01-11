@@ -874,3 +874,54 @@ export const Restaurants = () => {
 
 
 ```
+
+### Search
+
+- useLazyQuery
+
+  - useQuery는 컴포넌트가 mount, render될 때 apollo client가 자동으로 실행한다.
+  - useLazyQuery component가 render될 때가 아니라 어떤 이벤트에 대해 쿼리를 실행하게 해준다.
+  - 조건이 달성 했을때 Query 문 호출 하고 싶을때
+  - https://www.apollographql.com/docs/react/api/react/hooks/#uselazyquery
+
+  ```
+  const SEARCH_RESTAURANT = gql`
+    query searchRestaurant($input: SearchRestaurantInput!) {
+      searchRestaurant(input: $input) {
+        ok
+        error
+        totalPages
+        totalResults
+        restaurants {
+          ...RestaurantParts
+        }
+      }
+    }
+    ${RESTAURANT_FRAGMENT}
+  `;
+
+  export const Search = () => {
+    const location = useLocation();
+    const history = useHistory();
+    const [callQuery, { loading, data, called }] = useLazyQuery<
+      searchRestaurant,
+      searchRestaurantVariables
+    >(SEARCH_RESTAURANT);
+    // 조건이 달성 했을때 Query 문 호출 하고 싶을때 useLazyQuery 이용
+    // useQuery 는 선언과 동시에 바로 호출인 반면 useLazyQuery는 리턴된 함수를 호출해야 호출된다
+
+    useEffect(() => {
+      const [_, query] = location.search.split("?term=");
+      if (!query) {
+        return history.replace("/");
+      }
+      callQuery({
+        variables: {
+          input: {
+            page: 1,
+            query,
+          },
+        },
+      });
+    }, [history, location]);
+  ```

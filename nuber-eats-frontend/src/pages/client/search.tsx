@@ -31,6 +31,9 @@ export const Search = () => {
     searchRestaurant,
     searchRestaurantVariables
   >(SEARCH_RESTAURANT);
+  // 조건이 달성 했을때 Query 문 호출 하고 싶을때 useLazyQuery 이용
+  // useQuery 는 선언과 동시에 바로 호출인 반면 useLazyQuery는 리턴된 함수를 호출해야 호출된다
+
   useEffect(() => {
     const [_, query] = location.search.split("?term=");
     if (!query) {
@@ -45,7 +48,9 @@ export const Search = () => {
       },
     });
   }, [history, location]);
+
   console.log(loading, data, called);
+
   return (
     <div>
       <Helmet>
