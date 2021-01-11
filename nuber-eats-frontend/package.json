@@ -38,6 +38,7 @@
     "apollo:codegen": "rimraf src/__generated__ && npx apollo client:codegen src/__generated__ --target=typescript --outputFlat",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:cov": "npm test -- --coverage --watchAll=false",
     "eject": "react-scripts eject",
     "commit": "git add --all && git commit -m"
   },
@@ -57,6 +58,14 @@
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
+    ]
+  },
+  "jest":{
+    "collectCoverageFrom": [
+      "./src/App.tsx",
+      "./src/components/**/*.tsx",
+      "./src/pages/**/*.tsx",
+      "./src/router/**/*.tsx"
     ]
   }
 }
