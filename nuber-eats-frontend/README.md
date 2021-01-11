@@ -926,7 +926,7 @@ export const Restaurants = () => {
     }, [history, location]);
   ```
 
-## TESTING REACT COMPONENTS
+## UNIT TESTING REACT COMPONENTS
 
 - jest
 - testing-library
