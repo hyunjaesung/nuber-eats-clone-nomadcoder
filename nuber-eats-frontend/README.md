@@ -693,3 +693,184 @@ export const LoggedInRouter = () => {
     onCompleted,
   });
   ```
+
+## Restaurant
+
+- 쿼리문 여러개 도 호출 가능하구나
+  ```
+  const RESTAURANTS_QUERY = gql`
+  query restaurantsPageQuery($input: RestaurantsInput!) {
+    allCategories {
+      ok
+      error
+      categories {
+        id
+        name
+        coverImg
+        slug
+        restaurantCount
+      }
+    }
+    restaurants(input: $input) {
+      ok
+      error
+      totalPages
+      totalResults
+      results {
+        id
+        name
+        coverImg
+        category {
+          name
+        }
+        address
+        isPromoted
+      }
+    }
+  }
+  `;
+  ```
+- 쿼리문 줄이기
+
+  ```
+  const RESTAURANT_FRAGMENT = gql`
+    fragment RestaurantParts on Restaurant {
+      id
+      name
+      coverImg
+      category {
+        name
+      }
+      address
+      isPromoted
+    }
+  `;
+
+  const RESTAURANTS_QUERY = gql`
+    query restaurantsPageQuery($input: RestaurantsInput!) {
+      allCategories {
+        ok
+        error
+        categories {
+          id
+          name
+          coverImg
+          slug
+          restaurantCount
+        }
+      }
+      restaurants(input: $input) {
+        ok
+        error
+        totalPages
+        totalResults
+        results {
+          # id
+          # name
+          # coverImg
+          # category {
+          #   name
+          # }
+          # address
+          # isPromoted
+          # 아래와 같이 단축 가능
+          ...RestaurantParts
+        }
+      }
+    }
+    ${RESTAURANT_FRAGMENT}
+  `;
+  ```
+
+### Pagination
+
+```
+import { gql, useQuery } from "@apollo/client";
+import React, { useState } from "react";
+import { Restaurant } from "../../components/restaurant";
+import {
+  restaurantsPageQuery,
+  restaurantsPageQueryVariables,
+} from "../../__generated__/restaurantsPageQuery";
+
+const RESTAURANTS_QUERY = gql`
+  query restaurantsPageQuery($input: RestaurantsInput!) {
+    allCategories {
+      ok
+      error
+      categories {
+        id
+        name
+        coverImg
+        slug
+        restaurantCount
+      }
+    }
+    restaurants(input: $input) {
+      ok
+      error
+      totalPages
+      totalResults
+      results {
+        id
+        name
+        coverImg
+        category {
+          name
+        }
+        address
+        isPromoted
+      }
+    }
+  }
+`;
+
+export const Restaurants = () => {
+  const [page, setPage] = useState(1);
+
+  const { data, loading } = useQuery<
+    restaurantsPageQuery,
+    restaurantsPageQueryVariables
+  >(RESTAURANTS_QUERY, {
+    variables: {
+      input: {
+        page,
+      },
+    },
+  });
+
+  const onNextPageClick = () => setPage((current) => current + 1);
+  const onPrevPageClick = () => setPage((current) => current - 1);
+  return (
+        ...
+          <div className='grid grid-cols-3 text-center max-w-md items-center mx-auto mt-10'>
+            {page > 1 ? (
+              <button
+                onClick={onPrevPageClick}
+                className='focus:outline-none font-medium text-2xl'>
+                &larr;
+              </button>
+            ) : (
+              <div></div>
+            )}
+            <span>
+              Page {page} of {data?.restaurants.totalPages}
+            </span>
+            {page !== data?.restaurants.totalPages ? (
+              <button
+                onClick={onNextPageClick}
+                className='focus:outline-none font-medium text-2xl'>
+                &rarr;
+              </button>
+            ) : (
+              <div></div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+```

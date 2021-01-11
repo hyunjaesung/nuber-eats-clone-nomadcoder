@@ -16,10 +16,10 @@ export const Header: React.FC = () => {
       )}
       <header className='py-4'>
         <div className='w-full px-5 xl:px-0 max-w-screen-xl mx-auto flex justify-between items-center'>
-          <img src={nuberLogo} className='w-24' alt='Nuber Eats' />
+          <img src={nuberLogo} className='w-44' alt='Nuber Eats' />
           <span className='text-xs'>
             <Link to='/my-profile'>
-              <FontAwesomeIcon icon={faUser} className='text-xl' />
+              <FontAwesomeIcon icon={faUser} className='3xl' />
             </Link>
           </span>
         </div>
