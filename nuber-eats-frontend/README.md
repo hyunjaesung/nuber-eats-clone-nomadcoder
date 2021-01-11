@@ -730,7 +730,7 @@ export const LoggedInRouter = () => {
   }
   `;
   ```
-- 쿼리문 줄이기
+- query문 변수로 넣기
 
   ```
   const RESTAURANT_FRAGMENT = gql`
