@@ -27,7 +27,7 @@ describe("<App/>", () => {
 
     // render 함수는 많은 함수를 return 한다
     const { debug, getByText } = render(<App />);
-    debug(); // 그려지는 html console.log
+    // debug(); // 그려지는 html console.log
     getByText("LoggedOut"); // 해당 텍스트 있으면 통과
   });
 

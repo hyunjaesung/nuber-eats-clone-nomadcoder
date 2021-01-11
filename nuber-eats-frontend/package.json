@@ -37,7 +37,7 @@
     "start": "npm run apollo:codegen & npm run tailwind:build & react-scripts start",
     "apollo:codegen": "rimraf src/__generated__ && npx apollo client:codegen src/__generated__ --target=typescript --outputFlat",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "react-scripts test --verbose",
     "test:cov": "npm test -- --coverage --watchAll=false",
     "eject": "react-scripts eject",
     "commit": "git add --all && git commit -m"

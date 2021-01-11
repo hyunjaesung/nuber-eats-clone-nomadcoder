@@ -930,6 +930,9 @@ export const Restaurants = () => {
 
 - jest
 - testing-library
+  - https://testing-library.com/docs/react-testing-library/intro/
+  - 우리가 테스트할 건 코드가 아니라 유저들이 보는 output
+    - 그렇기에 100% coverage가 안될수 도 있음
 
 ### coverage 대상 설정
 
@@ -938,6 +941,8 @@ export const Restaurants = () => {
 
   ```
   npm test -- --coverage --watchAll=false
+
+  --verbose 옵션 넣으면 it 뒤에 붙은 문자열이랑 같이 ㄴ뜬다
   ```
 
   ```
@@ -959,63 +964,255 @@ export const Restaurants = () => {
 - Files with .test.js suffix.
 - Files with .spec.js suffix.
 
+### testing-library render option
+
+- https://testing-library.com/docs/react-testing-library/api#render-options
+
 ### App 테스트
 
-- loggedOutRouter
+- render getByText mock 써보기
+
+```
+import React from "react";
+import { render } from "@testing-library/react";
+import App from "./App";
+
+jest.mock("./router/loggedOutRouter", () => {
+  return {
+    LoggedOutRouter: () => <span>LoggedOut</span>,
+  };
+}); // 경로 쓰고 컴포넌트 mock으로 바꿔치기
+
+describe("<App/>", () => {
+  it("render loggedOutRouter 테스트", () => {
+    // render 안에 리액트 컴포넌트 구문 에러나는 문제
+    // 파일이름을 tsx 로 바꾸면된다
+
+    render(<App />); // 앱을 render하면서 에러 test해본다
+    // App 만 바로 테스트하니까 깊이 들어가면서 아폴로 client가 없다고 에러가 난다
+    // 우리가 알고싶은거는 단순히 App까지 렌더 분기가 잘되는지
+    // mock을 해보자
+
+    // render 함수는 많은 함수를 return 한다
+    const { debug, getByText } = render(<App />);
+    debug(); // 그려지는 html console.log
+    getByText("LoggedOut"); // 해당 텍스트 있으면 통과
+  });
+});
+```
+
+```
+import React from "react";
+import { render, waitFor } from "@testing-library/react";
+import App from "./App";
+import { isLoggedInVar } from "./apollo";
+
+jest.mock("./router/loggedInRouter", () => {
+  return {
+    LoggedInRouter: () => <span>LoggedIn</span>,
+  };
+});
+
+describe("<App/>", () => {
+  it("render loggedInRouter 테스트", async () => {
+    const { getByText } = render(<App />);
+    await waitFor(() => {
+      // state 업데이트 끝날때 까지 기다려주게 한다
+      // 안쓰면 act 어쩌고 에러남
+      isLoggedInVar(true);
+      // reactive variable 을 조건문 통과를 위해 그냥 바꿔버린다
+    });
+    getByText("LoggedIn");
+  });
+});
+```
+
+### /components 테스트
+
+- rerender, container, expect 써보기
+
+```
+import { render } from "@testing-library/react";
+import React from "react";
+import { Button } from "../button";
+
+describe("<Button />", () => {
+  it("props 와 render 테스트", () => {
+    const { debug, getByText, rerender } = render(
+      <Button canClick={true} loading={false} actionText={"test"} />
+    );
+    getByText("test");
+
+    // rerender 써서 하는 방법
+
+    // rerender(<Button canClick={true} loading={true} actionText={"test"} />);
+    // // 반복해서 조건 바꿔서 render 새로 해보고싶을때
+    // getByText("Loading...");
+  });
+
+  it("should display loading", () => {
+    const { getByText } = render(
+      <Button canClick={true} loading={true} actionText={"test"} />
+    );
+    getByText("Loading...");
+  });
+
+  it("should display canClick", () => {
+    const { getByText, container, debug } = render(
+      <Button canClick={false} loading={true} actionText={"test"} />
+    );
+    getByText("Loading...");
+
+    // container는 맨 바깥쪽 있는 div
+    expect(container.firstChild).toHaveClass("pointer-events-none");
+    // expect 써서 클래스 테스트
+  });
+});
+```
+
+- html attribute 테스트
+
+```
+import { render } from "@testing-library/react";
+import React from "react";
+import { Restaurant } from "../restaurant";
+import { BrowserRouter as Router } from "react-router-dom";
+
+describe("<Restaurant/>", () => {
+  it("renders Ok with props", () => {
+    const props = {
+      id: "1",
+      coverImg: "x",
+      name: "nameTest",
+      categoryName: "catTest",
+    };
+    const { debug, getByText, container } = render(
+      <Router>
+        <Restaurant {...props} />
+      </Router>
+    );
+    // Link가 Router 밖에 쓰일 수 없다고 에러가 난다
+    // test를 위한 Router를 import
+
+    debug();
+    getByText(props.name);
+    getByText(props.categoryName);
+
+    // html attribute 체크
+    expect(container.firstChild).toHaveAttribute(
+      "href",
+      `/restaurants/${props.id}`
+    );
+  });
+});
+
+```
+
+### apollo 로직 있을 경우 테스트
+
+- MockedProvider, queryByText
+
+  - https://www.apollographql.com/docs/react/development-testing/testing/#the-mockedprovider-component
 
   ```
+  import { render, waitFor } from "@testing-library/react";
   import React from "react";
-  import { render } from "@testing-library/react";
-  import App from "./App";
+  import { MockedProvider } from "@apollo/client/testing";
+  import { Header } from "../header";
+  import { BrowserRouter as Router } from "react-router-dom";
+  import { ME_QUERY } from "../../hooks/useMe";
 
-  jest.mock("./router/loggedOutRouter", () => {
-    return {
-      LoggedOutRouter: () => <span>LoggedOut</span>,
-    };
-  }); // 경로 쓰고 컴포넌트 mock으로 바꿔치기
+  describe("<Header/>", () => {
+    it("renders verify banner", async () => {
+      // Header 안에 graphql 아폴로 쿼리 호출 로직이 있어서 에러
+      // 아폴로가 제공하는 테스트 툴 MockedProvider 사용
 
-  describe("<App/>", () => {
-    it("render loggedOutRouter 테스트", () => {
-      // render 안에 리액트 컴포넌트 구문 에러나는 문제
-      // 파일이름을 tsx 로 바꾸면된다
+      // Header 안에 query data로 분기 치는 로직이 있다 -> mock 이 필요하다
+      // useMe를 mock 하는게 아니라
+      // MockedProvider으로 query 의 request를 만들고 result까지 mock 가능하다
 
-      render(<App />); // 앱을 render하면서 에러 test해본다
-      // App 만 바로 테스트하니까 깊이 들어가면서 아폴로 client가 없다고 에러가 난다
-      // 우리가 알고싶은거는 단순히 App까지 렌더 분기가 잘되는지
-      // mock을 해보자
+      await waitFor(async () => {
+        const { getByText } = render(
+          <MockedProvider
+            mocks={[
+              {
+                request: {
+                  query: ME_QUERY,
+                },
+                result: {
+                  data: {
+                    me: {
+                      id: 1,
+                      email: "",
+                      role: "",
+                      verified: false,
+                    },
+                  },
+                },
+              },
+            ]}>
+            <Router>
+              <Header />
+            </Router>
+          </MockedProvider>
+        );
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        getByText("Please verify your email.");
+        // mock으로 만든 query 문 동작이 비동기라서 잠깐 대기 필요
+      }); // state 변경 시키는게 있어서 waitFor 사용
+    });
 
-      // render 함수는 많은 함수를 return 한다
-      const { debug, getByText } = render(<App />);
-      debug(); // 그려지는 html console.log
-      getByText("LoggedOut"); // 해당 텍스트 있으면 통과
+    it("renders without verify banner", async () => {
+      await waitFor(async () => {
+        const { queryByText } = render(
+          <MockedProvider
+            mocks={[
+                      ...
+                      verified: true,
+                    },
+                  },
+                },
+              },
+            ]}>
+            <Router>
+              <Header />
+            </Router>
+          </MockedProvider>
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(queryByText("Please verify your email.")).toBe(null);
+
+        // 해당 문구가 없어야 통과 하는 테스트
+        // queryByText 는
+        // 해당 문구가 있으면 해당 문구가 있는 tag를 반환하고
+        // 해당 문구가 없으면 null 을 반환한다
+      });
     });
   });
-  ```
-
-- loggedInRouter 테스트
 
   ```
-  import React from "react";
-  import { render, waitFor } from "@testing-library/react";
-  import App from "./App";
-  import { isLoggedInVar } from "./apollo";
 
-  jest.mock("./router/loggedInRouter", () => {
-    return {
-      LoggedInRouter: () => <span>LoggedIn</span>,
-    };
-  });
+### /pages 테스트
 
-  describe("<App/>", () => {
-    it("render loggedInRouter 테스트", async () => {
-      const { getByText } = render(<App />);
+- document.title 테스트
+
+  - vanilla js나 dom 스펙도 다 테스팅 가능
+
+  ```
+  describe("<NotFound />", () => {
+    it("renders OK", async () => {
+      render(
+        <HelmetProvider>
+          <Router>
+            <NotFound />
+          </Router>
+        </HelmetProvider>
+      );
+
       await waitFor(() => {
-        // state 업데이트 끝날때 까지 기다려주게 한다
-        // 안쓰면 act 어쩌고 에러남
-        isLoggedInVar(true);
-        // reactive variable 을 조건문 통과를 위해 그냥 바꿔버린다
-      });
-      getByText("LoggedIn");
+        expect(document.title).toBe("Not Found | Nuber Eats");
+      }); // helmet이 바로 안바꿔줌
     });
   });
   ```
