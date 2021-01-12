@@ -1447,3 +1447,117 @@ jest.mock("react-router-dom", () => {
 
 ...
 ```
+
+## E2E Test
+
+### cypress
+
+```
+npm install cypress @testing-library/cypress
+```
+
+```
+npx cypress open
+```
+
+- cypress 폴더가 생기는데 integration 폴더에 넣고 소프트웨어 integration 버튼 누르면 테스트 시작한다
+- cypress.json
+  ```
+  {
+    "baseUrl":"http://localhost:3000"
+  }
+  ```
+- tsconfig
+  ```
+  // cypress/tsconfig.json
+  // cypress ts 설정
+  {
+      "compilerOptions": {
+          "allowJs": true,
+          "baseUrl": "../node_modules",
+          "types":[
+              "cypress",
+              "@testing-library/cypress"
+          ],
+          "outDir": "#"
+      },
+      "include": [
+          "./**/*.*"
+      ]
+  }
+  ```
+
+### 시작
+
+```
+// integration/firstTest.ts
+describe("First Test", () => {
+  it("should go to home page", () => {
+    cy.visit("/")
+      .title()
+      .should("eq", "Login | Nuber Eats");
+  });
+
+  it("can fill out the form", () => {
+    // 소프트웨어 가서 좌측 상단 표식 모양 누르면 원하는 태그 알수있다
+    cy.visit("/")
+      .get('[name="email"]')
+      .type("test2@test.com")
+      .get('[name="password"]')
+      .type("123")
+      .get(".text-lg")
+      .should("not.have.class", "pointer-events-none");
+    // to do can login
+  });
+});
+
+```
+
+- 리액트 페이지 실행
+- npx cypress open
+- 소프트웨어에 있는 run 클릭 하면 확인가능
+
+- it 들은 다 분리된 테스트
+
+### Cypress Testing Library 사용하기
+
+- https://testing-library.com/docs/cypress-testing-library/intro/
+
+- support/commands 에 추가
+  ```
+  import "@testing-library/cypress/add-commands";
+  ```
+- testing library 이용
+
+  ```
+  describe("Log In", () => {
+    const user = cy;
+
+    it("can see email password validation errors", () => {
+      // testing library 를 이용한 방법
+      // testing lobrary 메서드 쓸때마다 cy 분리 해야한다
+      user.visit("/");
+      user.findByPlaceholderText(/email/i).type("notEmailsdffiof");
+      user.findByRole("alert").should("have.text", "Please enter a valid email");
+
+      user.findByPlaceholderText(/email/i).clear();
+      user.findByRole("alert").should("have.text", "Email is required");
+
+      user.findByPlaceholderText(/email/i).type("email@email.com");
+      user
+        .findByPlaceholderText(/password/i)
+        .type("a")
+        .clear()
+        .click();
+      user.findByRole("alert").should("have.text", "Password is required");
+    });
+  ```
+
+### cypress command
+
+- https://docs.cypress.io/api/commands/and.html
+
+- window localStorage 접근
+  ```
+    user.window().its("localStorage.nuber-token").should("be.a", "string");
+  ```
