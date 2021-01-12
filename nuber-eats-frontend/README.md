@@ -968,9 +968,7 @@ export const Restaurants = () => {
 
 - https://testing-library.com/docs/react-testing-library/api#render-options
 
-### App 테스트
-
-- render getByText mock 써보기
+### render getByText mock 써보기
 
 ```
 import React from "react";
@@ -1027,9 +1025,7 @@ describe("<App/>", () => {
 });
 ```
 
-### /components 테스트
-
-- rerender, container, expect 써보기
+### rerender, container, expect 써보기
 
 ```
 import { render } from "@testing-library/react";
@@ -1070,7 +1066,7 @@ describe("<Button />", () => {
 });
 ```
 
-- html attribute 테스트
+### html attribute 테스트
 
 ```
 import { render } from "@testing-library/react";
@@ -1108,7 +1104,7 @@ describe("<Restaurant/>", () => {
 
 ```
 
-### apollo 로직 있을 경우 테스트
+### apollo 로직 있을 경우 테스트 1
 
 - MockedProvider, queryByText
 
@@ -1193,26 +1189,171 @@ describe("<Restaurant/>", () => {
 
   ```
 
-### /pages 테스트
+### document.title 테스트
 
-- document.title 테스트
+- vanilla js나 dom 스펙도 다 테스팅 가능
 
-  - vanilla js나 dom 스펙도 다 테스팅 가능
+```
+describe("<NotFound />", () => {
+  it("renders OK", async () => {
+    render(
+      <HelmetProvider>
+        <Router>
+          <NotFound />
+        </Router>
+      </HelmetProvider>
+    );
+
+    await waitFor(() => {
+      expect(document.title).toBe("Not Found | Nuber Eats");
+    }); // helmet이 바로 안바꿔줌
+  });
+});
+```
+
+### apollo 로직 있을 경우 테스트 2
+
+- mockedProvider의 케이스 보다 좀 더 복잡하게 테스트 하고싶다
+
+  - mockedProvider는 단순히 request 와 result만 mock 하는 정도
+
+- mock apollo client 사용
+
+  - https://www.npmjs.com/package/mock-apollo-client
+  - 더 많은 control을 제공하는 모듈
+  - jest 에서 제공하는 것들을 더 유용하게 활용 가능
+  - npm i mock-apollo-client
+
+- testing library user-event
+
+  - https://testing-library.com/docs/ecosystem-user-event/
+  - 인풋 제어 필요 한 경우
 
   ```
-  describe("<NotFound />", () => {
-    it("renders OK", async () => {
-      render(
-        <HelmetProvider>
-          <Router>
-            <NotFound />
-          </Router>
-        </HelmetProvider>
-      );
+  // login.spec.tsx
+
+  import { ApolloProvider } from "@apollo/client";
+  import { render, RenderResult, waitFor } from "@testing-library/react";
+  import { createMockClient, MockApolloClient } from "mock-apollo-client";
+  import React from "react";
+  import { HelmetProvider } from "react-helmet-async";
+  import { Login } from "../login";
+  import { BrowserRouter as Router } from "react-router-dom";
+  import userEvent from "@testing-library/user-event";
+  import { LOGIN_MUTATION } from "../login";
+
+  // 코드에서 생기는 일이 아닌
+  // 유저한테 생기는 일( 유저가 확인하는 html )을 테스트 해야한다
+
+  describe("<Login/>", () => {
+    let renderResult: RenderResult;
+    let mockedClient: MockApolloClient;
+
+    beforeEach(async () => {
+      // Mock 데이터를 넣은 Login 컴포넌트 생성
+      await waitFor(() => {
+        mockedClient = createMockClient();
+        renderResult = render(
+          // 진짜 ApolloProvider안에 mock client 넣기
+          <ApolloProvider client={mockedClient}>
+            <Router>
+              <HelmetProvider>
+                <Login />
+              </HelmetProvider>
+            </Router>
+          </ApolloProvider>
+        );
+      });
+    });
+
+    ...
+
+    it("submit form and calls mutation", async () => {
+      const formData = {
+        email: "real@test.com",
+        password: "123",
+      };
+
+      const { getByPlaceholderText, getByRole, debug } = renderResult;
+      const email = getByPlaceholderText(/email/i); // email input 창 찾기
+      const password = getByPlaceholderText(/password/i); // password input 창 찾기
+      const submitBtn = getByRole("button"); // tag에 role넣어서 button 찾기
+
+      const mockedMutationResponse = jest.fn().mockResolvedValue({
+        data: {
+          login: {
+            ok: true,
+            token: "asdfafd",
+            error: null,
+          },
+        },
+      });
+
+      // 첫번째 인자에는 실제 GraphQL문 사용
+      // 해당 GraphQL문이 호출 되었을때 호출되고 결과 return하는 콜백 함수가 두번째 인자
+      mockedClient.setRequestHandler(LOGIN_MUTATION, mockedMutationResponse);
 
       await waitFor(() => {
-        expect(document.title).toBe("Not Found | Nuber Eats");
-      }); // helmet이 바로 안바꿔줌
+        userEvent.type(email, formData.email);
+        userEvent.type(password, formData.password);
+        userEvent.click(submitBtn);
+      });
+
+      // 두번째 인자 콜백 함수로 여러가지 검증
+      expect(mockedMutationResponse).toBeCalledTimes(1); // 호출 제대로 됐는지
+      expect(mockedMutationResponse).toBeCalledWith({
+        // 인자는 제대로 들어갔는지
+        loginInput: {
+          ...formData,
+        },
+      });
     });
   });
+
   ```
+
+### tag에 role 넣어서 테스트
+
+```
+// login.spec.tsx
+....
+
+it("display email validation error", async () => {
+    const { getByPlaceholderText, getByRole, debug } = renderResult;
+
+    const email = getByPlaceholderText(/email/i); // email input 창 찾기
+
+    await waitFor(() => {
+      userEvent.type(email, "this@fail"); // 유저가 하는 이벤트를 넣어줄수 있음
+    });
+
+    let errorMessage = getByRole("alert"); // tag에 role추가 하고 찾아오기
+    expect(errorMessage).toHaveTextContent(/please enter a valid email/i);
+    // 에러 메시지 테스트
+
+    await waitFor(() => {
+      userEvent.clear(email); // 다지우기
+    });
+    errorMessage = getByRole("alert");
+    expect(errorMessage).toHaveTextContent(/email is required/i);
+  });
+
+...
+```
+
+### localStorage 테스트
+
+```
+it("submit form and calls mutation", async () => {
+    ...
+
+    mockedClient.setRequestHandler(LOGIN_MUTATION, mockedMutationResponse);
+
+    jest.spyOn(Storage.prototype, "setItem");
+
+    // 이 사이에 Storage.prototype 의 setItem 메서드가 쓰여야 spying 된다
+
+    expect(localStorage.setItem).toHaveBeenCalledWith("nuber-token", "asdfafd");
+
+  });
+```

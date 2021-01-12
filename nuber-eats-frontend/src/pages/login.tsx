@@ -21,7 +21,7 @@ interface ILoginForm {
 // DTO를 이용한 grapql 스키마를 프론트 타입으로 쓸 수 있다
 // 이렇게 스키마 타입을 쓰고 codegen을 하면 globalType으로 넣어준다
 // 서버에서 DTO를 수정하면 바로 타입 에러가 나고 버그 찾을 수 있다
-const LOGIN_MUTATION = gql`
+export const LOGIN_MUTATION = gql`
   mutation loginMutation($loginInput: LoginInput!) {
     login(input: $loginInput) {
       ok
@@ -48,6 +48,7 @@ export const Login = () => {
     const {
       login: { ok, token },
     } = data;
+
     if (ok && token) {
       localStorage.setItem(LOCALSTORAGE_TOKEN, token);
       authTokenVar(token);
@@ -122,9 +123,6 @@ export const Login = () => {
           />
           {errors.password?.message && (
             <FormError errorMessage={errors.password?.message} />
-          )}
-          {errors.password?.type === "minLength" && (
-            <FormError errorMessage='Password must be more than 10 chars.' />
           )}
           <Button
             canClick={formState.isValid}
