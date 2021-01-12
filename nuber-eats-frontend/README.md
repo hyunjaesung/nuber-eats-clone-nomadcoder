@@ -1357,3 +1357,61 @@ it("submit form and calls mutation", async () => {
 
   });
 ```
+
+### 반복되는 Provider 컴포넌트 래핑을 custom render로 바꿔보자
+
+- https://testing-library.com/docs/react-testing-library/setup#custom-render
+
+```
+// testUtil.tsx
+import { render } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
+import { BrowserRouter as Router } from "react-router-dom";
+
+const AllTheProviders: React.FC = ({ children }) => {
+  return (
+    <HelmetProvider>
+      <Router>{children}</Router>
+    </HelmetProvider>
+  );
+};
+
+const customRender = (ui: ReactElement, options?: any) =>
+  render(ui, { wrapper: AllTheProviders, ...options });
+
+// re-export everything
+export * from "@testing-library/react";
+
+// override render method
+export { customRender as render };
+```
+
+```
+import { ApolloProvider } from "@apollo/client";
+import { createMockClient, MockApolloClient } from "mock-apollo-client";
+import React from "react";
+import { CreateAccount } from "../createAccount";
+import { render, waitFor, RenderResult } from "../../testUtils";
+// @testing-library/react 엎어 치기한거라 다 가지고 올수 있다
+
+describe("<CreateAccount />", () => {
+  let mockedClient: MockApolloClient;
+  let renderResult: RenderResult;
+  beforeEach(async () => {
+    await waitFor(() => {
+      mockedClient = createMockClient();
+      renderResult = render(
+        <ApolloProvider client={mockedClient}>
+          <CreateAccount />
+        </ApolloProvider>
+      );
+    });
+  });
+  it("renders OK", async () => {
+    await waitFor(() =>
+      expect(document.title).toBe("Create Account | Nuber Eats")
+    );
+  });
+});
+
+```
