@@ -1292,6 +1292,7 @@ describe("<NotFound />", () => {
       // 첫번째 인자에는 실제 GraphQL문 사용
       // 해당 GraphQL문이 호출 되었을때 호출되고 결과 return하는 콜백 함수가 두번째 인자
       mockedClient.setRequestHandler(LOGIN_MUTATION, mockedMutationResponse);
+      // 해당 Mutation 을 구독 하고 있기 때문에 호출 되면 그냥 response 정해진 걸로 해주면 된다
 
       await waitFor(() => {
         userEvent.type(email, formData.email);
@@ -1368,6 +1369,7 @@ import { render } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter as Router } from "react-router-dom";
 
+// Provider로 감싸주기
 const AllTheProviders: React.FC = ({ children }) => {
   return (
     <HelmetProvider>
@@ -1383,7 +1385,7 @@ const customRender = (ui: ReactElement, options?: any) =>
 export * from "@testing-library/react";
 
 // override render method
-export { customRender as render };
+export { customRender as render }; // 엎어치기
 ```
 
 ```
@@ -1414,4 +1416,34 @@ describe("<CreateAccount />", () => {
   });
 });
 
+```
+
+### import 한 라이브러리 mock 도와주는 package이 없을 때
+
+- library를 mock 해야한다
+- 웬만하면 mock 하지말고 testing package가 있으면 쓰면 좋다
+
+```
+const mockPush = jest.fn();
+// 변수이름을 mock으로 시작해야 jest 바깥 선언 가능하다
+
+jest.mock("react-router-dom", () => {
+  const realModule = jest.requireActual("react-router-dom");
+  // 그냥 쓰면 통으로 갈아버려서 기존에 react-router-dom에서 가져온 함수들도 다 사라진다
+  // requireActual 쓰자
+  return {
+    ...realModule,
+    useHistory: () => {
+      return {
+        push: mockPush,
+      };
+    },
+  };
+});
+
+...
+
+  expect(mockPush).toHaveBeenCalledWith("/");
+
+...
 ```
