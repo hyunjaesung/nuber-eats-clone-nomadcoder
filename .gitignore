@@ -117,3 +117,5 @@ dist
 .pnp.*
 
 nuber-eats-backend/.env.dev
+
+nuber-eats-backend/.env.prod
