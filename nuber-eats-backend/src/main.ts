@@ -8,6 +8,8 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
   // app.use(JwtMiddleware);
   // 함수 미들웨어만 등록가능
+  app.enableCors();
+  // CORS 허용
   await app.listen(4000);
 }
 bootstrap();

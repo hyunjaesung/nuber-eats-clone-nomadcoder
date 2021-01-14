@@ -2759,3 +2759,11 @@ export class UploadsController {
 }
 
 ```
+
+## CORS 허용
+
+```
+// main.ts
+app.enableCors();
+  // CORS 허용
+```
