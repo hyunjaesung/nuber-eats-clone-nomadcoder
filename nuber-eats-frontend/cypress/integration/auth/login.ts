@@ -4,20 +4,9 @@ describe("Log In", () => {
     cy.visit("/").title().should("eq", "Login | Nuber Eats");
   });
 
-  it("can fill out the form", () => {
+  it("can fill out the form and log in", () => {
     // 소프트웨어 가서 좌측 상단 표식 모양 누르면 원하는 태그 알수있다
-    user
-      .visit("/")
-      .get('[name="email"]')
-      .type("test8@test.com")
-      .get('[name="password"]')
-      .type("123")
-      .get(".text-lg")
-      .should("not.have.class", "pointer-events-none")
-      .click();
-
-    // window 객체 접근 해서 테스트
-    user.window().its("localStorage.nuber-token").should("be.a", "string");
+    user.login("test@test.com", "123");
   });
 
   it("can see email password validation errors", () => {
@@ -40,7 +29,4 @@ describe("Log In", () => {
   });
 
   // it 들이 다 분리 되어있어서 굳이 로그아웃 안해도 처음부터 테스트 다시시작
-  it("move to create Account", () => {
-    user.visit("/create-account");
-  });
 });

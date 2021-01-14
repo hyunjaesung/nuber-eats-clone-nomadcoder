@@ -1561,3 +1561,127 @@ describe("First Test", () => {
   ```
     user.window().its("localStorage.nuber-token").should("be.a", "string");
   ```
+
+### cypress 이용해서 request 갈아 끼우기
+
+- cy.intercept() 사용하면 된다
+- https://docs.cypress.io/api/commands/intercept.html#Comparison-to-cy-route
+
+```
+it("should be able to create account and login", () => {
+    cy.intercept("http://localhost:4000/graphql", (req) => {
+      req.reply((res) => {
+        const { operationName } = req.body;
+
+        // 모든 해당 도메인 response를 바꾸고 싶지 않으면 조건 걸어줘야한다
+        // 안걸면 밑에 로그인도 이걸로 가서 token 안온다
+        if (operationName && operationName === "createAccountMutation") {
+          res.send({
+            // 네트워크 탭에서 res 복붙해와서 원하는대로 바꿈
+            data: {
+              createAccount: {
+                ok: true,
+                error: null,
+                __typename: "CreateAccountOutput",
+              },
+            },
+          });
+        }
+      });
+    });
+    // 실제 있어도 존재 하지 않는 척으로 가짜로 만듦
+    // 아래 테스트로 하면 있는 계정이라 원래 ok false 와야한다
+
+    cy.visit("/create-account");
+    cy.findByPlaceholderText(/email/i).type("test@test.com");
+    cy.findByPlaceholderText(/password/i).type("123");
+    cy.findByRole("button").click();
+    cy.wait(1000);
+    cy.findByPlaceholderText(/email/i).type("test@test.com");
+    cy.findByPlaceholderText(/password/i).type("123");
+    cy.findByRole("button").click();
+    cy.title().should("eq", "Login | Nuber Eats");
+    cy.window().its("localStorage.nuber-token").should("be.a", "string");
+  });
+```
+
+- response 데이터 json으로 가지고오기
+
+  ```
+  // cypress/fixtures/auth/create-account.json
+
+  {
+  "data": {
+      "createAccount": {
+        "ok": true,
+        "error": null,
+        "__typename": "CreateAccountOutput"
+      }
+    }
+  }
+  ```
+
+  ```
+  // cypress/integration/auth/create-account.ts
+
+  it("should be able to create account and login", () => {
+    cy.intercept("http://localhost:4000/graphql", (req) => {
+      req.reply((res) => {
+        const { operationName } = req.body;
+
+        if (operationName && operationName === "createAccountMutation") {
+          res.send({
+            // data: {
+            //   createAccount: {
+            //     ok: true,
+            //     error: null,
+            //     __typename: "CreateAccountOutput",
+            //   },
+            // },
+            fixture: "auth/createAccount.json",
+          });
+        }
+      });
+    });
+  ```
+
+### custom command 만들기
+
+```
+// 계속 반복해서 쓰는 이 코드 command로 만들고 싶다
+cy.window().its("localStorage.nuber-token").should("be.a", "string");
+
+// support/commands.js
+Cypress.Commands.add("assertLoggedIn", ()=> {
+    cy.window().its("localStorage.nuber-token").should("be.a", "string");
+})
+
+// createAccount.ts
+...
+cy.findByRole("button").click();
+cy.title().should("eq", "Login | Nuber Eats");
+// 이런식으로 교체
+cy.assertLoggedIn();
+```
+
+```
+// 여러 다른 예
+
+Cypress.Commands.add("assertLoggedOut", () => {
+  cy.window().its("localStorage.nuber-token").should("be.undefined");
+});
+
+Cypress.Commands.add("login", (email, password) => {
+  cy.visit("/");
+  // @ts-ignore
+  cy.assertLoggedOut();
+  cy.title().should("eq", "Login | Nuber Eats");
+  cy.findByPlaceholderText(/email/i).type(email);
+  cy.findByPlaceholderText(/password/i).type(password);
+  cy.findByRole("button")
+    .should("not.have.class", "pointer-events-none")
+    .click();
+  // @ts-ignore
+  cy.assertLoggedIn();
+});
+```
