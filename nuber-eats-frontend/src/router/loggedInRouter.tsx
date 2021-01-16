@@ -14,8 +14,10 @@ import { Restaurants } from "../pages/client/restaurants";
 import { Search } from "../pages/client/search";
 import { ConfirmEmail } from "../pages/user/confirmEmail";
 import { EditProfile } from "../pages/user/editProfile";
-import { MyRestaurants } from "../pages/owner/myRestaurants";
+import { MyRestaurant } from "../pages/owner/myRestaurant";
 import { AddRestaurant } from "../pages/owner/addRestaurants";
+import { MyRestaurants } from "../pages/owner/myRestaurants";
+import { AddDish } from "../pages/owner/addDish";
 
 const clientRoutes = [
   {
@@ -39,6 +41,8 @@ const clientRoutes = [
 const restaurantRoutes = [
   { path: "/", component: <MyRestaurants /> },
   { path: "/add-restaurant", component: <AddRestaurant /> },
+  { path: "/restaurants/:id", component: <MyRestaurant /> },
+  { path: "/restaurants/:restaurantId/add-dish", component: <AddDish /> },
 ];
 
 const commonRoutes = [
