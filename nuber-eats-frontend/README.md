@@ -1695,15 +1695,21 @@ const onSubmit = async () => {
     try {
       setUploading(true);
       const { file, name, categoryName, address } = getValues();
-      const actualFile = file[0];
+      const actualFile = file[0]; // file은 사실 List
+
+      // file만 따로 빼서 붙여줌
       const formBody = new FormData();
       formBody.append("file", actualFile);
+
+      // graphql이 아니라 http 로 전송
       const { url: coverImg } = await (
         await fetch("http://localhost:4000/uploads/", {
           method: "POST",
           body: formBody,
         })
       ).json();
+  
+      // 파일은 주소만 따로 받아서 string으로 mutation보냄
       createRestaurantMutation({
         variables: {
           input: {
