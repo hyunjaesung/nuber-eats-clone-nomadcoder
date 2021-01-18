@@ -1708,7 +1708,7 @@ const onSubmit = async () => {
           body: formBody,
         })
       ).json();
-  
+
       // 파일은 주소만 따로 받아서 string으로 mutation보냄
       createRestaurantMutation({
         variables: {
@@ -1724,3 +1724,124 @@ const onSubmit = async () => {
   };
 
 ```
+
+## Order 리얼타임 주문 설계
+
+### Subscription
+
+- https://www.apollographql.com/docs/react/data/subscriptions/
+
+```
+npm install subscriptions-transport-ws
+```
+
+### Subscription 설정
+
+```
+
+import { WebSocketLink } from "@apollo/client/link/ws";
+import { getMainDefinition } from "@apollo/client/utilities";
+
+const token = localStorage.getItem(LOCALSTORAGE_TOKEN);
+export const isLoggedInVar = makeVar(!!token);
+export const authTokenVar = makeVar(token);
+
+// 1번 ws링크 만들기
+const wsLink = new WebSocketLink({
+  // ws authenticate 해줌
+  uri: `ws://localhost:4000/graphql`,
+  options: {
+    reconnect: true,
+    connectionParams: {
+      // http header가 아닌 ws context에 들어갈것
+      "x-jwt": authTokenVar(),
+    },
+  },
+});
+
+const authLink = setContext((_, { headers }) => {
+  return {
+    headers: {
+      ...headers,
+      "x-jwt": authTokenVar() || "",
+    },
+  };
+}); // Client의 모든 req의 context 변경
+
+const httpLink = createHttpLink({
+  uri: "http://localhost:4000/graphql",
+});
+
+// 2번 splitLink 만들기
+// return true면 wsLink false면 httpLink
+
+const splitLink = split(
+  ({ query }) => {
+    const definition = getMainDefinition(query);
+    return (
+      definition.kind === "OperationDefinition" &&
+      definition.operation === "subscription"
+      // subscription 이 operation이면 true
+    );
+  },
+  wsLink,
+  authLink.concat(httpLink)
+);
+
+export const client = new ApolloClient({
+  link: splitLink, // 3번 splitLink로 변경
+  // 백엔드 주소
+  cache: new InMemoryCache({
+    ....
+```
+
+### 사용
+
+- https://www.apollographql.com/docs/react/data/subscriptions/#executing-a-subscription
+- 훅을 이용한 방법
+
+  ```
+  const FULL_ORDER_FRAGMENT = gql`
+    fragment FullOrderParts on Order {
+      id
+      status
+      total
+      driver {
+        email
+      }
+      customer {
+        email
+      }
+      restaurant {
+        name
+      }
+    }
+  `;
+
+  const ORDER_SUBSCRIPTION = gql`
+    subscription orderUpdates($input: OrderUpdatesInput!) {
+      orderUpdates(input: $input) {
+        ...FullOrderParts
+      }
+    }
+    ${FULL_ORDER_FRAGMENT}
+  `;
+
+  export const Order = () => {
+    ...
+    const { data: subData } = useSubscription<
+      orderUpdates,
+      orderUpdatesVariables
+    >(ORDER_SUBSCRIPTION, {
+      variables: {
+        input: {
+          id: +params.id,
+        },
+      },
+    });
+
+    return (
+      <div className='mt-32 container flex justify-center'>
+        <Helmet>
+          <title>Order #{params.id} | N
+  ```

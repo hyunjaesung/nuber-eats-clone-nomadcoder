@@ -134,7 +134,7 @@ export const MyRestaurant = () => {
         </Link>
         <span
           onClick={triggerPaddle}
-          className=' cursor-pointer text-white bg-lime-700 py-3 px-10'>
+          className=' cursor-pointer text-white bg-green-700 py-3 px-10'>
           Buy Promotion &rarr;
         </span>
         <div className='mt-10'>

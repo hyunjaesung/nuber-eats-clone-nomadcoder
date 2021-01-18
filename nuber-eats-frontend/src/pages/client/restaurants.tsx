@@ -52,6 +52,7 @@ interface IFormProps {
 }
 
 export const Restaurants = () => {
+  console.log("restaurants");
   const [page, setPage] = useState(1);
 
   const { data, loading } = useQuery<

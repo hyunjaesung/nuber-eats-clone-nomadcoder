@@ -37,6 +37,7 @@ export class OrderService {
     customer: User,
     { restaurantId, items }: CreateOrderInput,
   ): Promise<CreateOrderOutput> {
+    console.log('hi');
     try {
       const restaurant = await this.restaurants.findOne(restaurantId);
       if (!restaurant) {
@@ -56,25 +57,28 @@ export class OrderService {
           };
         }
         let dishFinalPrice = dish.price;
-        for (const itemOption of item.options) {
-          const dishOption = dish.options.find(
-            (dishOption) => dishOption.name === itemOption.name,
-          );
-          if (dishOption) {
-            if (dishOption.extra) {
-              dishFinalPrice = dishFinalPrice + dishOption.extra;
-            } else {
-              const dishOptionChoice = dishOption.choices?.find(
-                (optionChoice) => optionChoice.name === itemOption.choice,
-              );
-              if (dishOptionChoice) {
-                if (dishOptionChoice.extra) {
-                  dishFinalPrice = dishFinalPrice + dishOptionChoice.extra;
+        if (item.options) {
+          for (const itemOption of item.options) {
+            const dishOption = dish.options.find(
+              (dishOption) => dishOption.name === itemOption.name,
+            );
+            if (dishOption) {
+              if (dishOption.extra) {
+                dishFinalPrice = dishFinalPrice + dishOption.extra;
+              } else {
+                const dishOptionChoice = dishOption.choices?.find(
+                  (optionChoice) => optionChoice.name === itemOption.choice,
+                );
+                if (dishOptionChoice) {
+                  if (dishOptionChoice.extra) {
+                    dishFinalPrice = dishFinalPrice + dishOptionChoice.extra;
+                  }
                 }
               }
             }
           }
         }
+
         orderFinalPrice = orderFinalPrice + dishFinalPrice;
         const orderItem = await this.orderItems.save(
           this.orderItems.create({

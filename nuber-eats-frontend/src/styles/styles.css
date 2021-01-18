@@ -609,6 +609,21 @@ video {
   transition-duration: 150ms;
 }
 
+.container {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 1536px;
+}
+
+.link {
+  --tw-text-opacity: 1;
+  color: rgba(5, 150, 105, var(--tw-text-opacity));
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
 .btn {
   --tw-bg-opacity: 1;
   background-color: rgba(5, 150, 105, var(--tw-bg-opacity));
@@ -623,7 +638,14 @@ video {
   font-weight: 500;
   font-size: 1.125rem;
   line-height: 1.75rem;
-  margin-top: 0.75rem;
+}
+
+.btn:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.btn {
   padding-top: 1rem;
   padding-bottom: 1rem;
   --tw-text-opacity: 1;
