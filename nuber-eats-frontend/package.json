@@ -33,6 +33,7 @@
     "react-scripts": "4.0.1",
     "tailwindcss": "^2.0.2",
     "typescript": "^4.0.3",
+    "victory": "^35.4.6",
     "web-vitals": "^0.2.4"
   },
   "scripts": {
