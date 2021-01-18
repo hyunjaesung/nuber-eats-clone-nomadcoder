@@ -1849,6 +1849,7 @@ export const client = new ApolloClient({
 
 - subscribeToMore
 
+  - https://www.apollographql.com/docs/react/data/subscriptions/#subscribing-to-updates-for-a-query
   - useQuery의 데이터와 useSubscription의 데이터가 결국 같은 목적을 가져와서 데이터를 보여주기 때문에 같은 state로 엮어서 써도 되긴하지만 더 쉽게 해줌
 
   ```
@@ -1887,6 +1888,7 @@ export const client = new ApolloClient({
           prev,
           {
             subscriptionData: { data },
+            // subscriptionData, data는 그대로 써야한다
           }: { subscriptionData: { data: orderUpdates } }
         ) => {
           if (!data) return prev;
