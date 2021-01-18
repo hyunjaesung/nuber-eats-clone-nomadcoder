@@ -49,8 +49,6 @@ export const Search = () => {
     });
   }, [history, location]);
 
-  console.log(loading, data, called);
-
   return (
     <div>
       <Helmet>
