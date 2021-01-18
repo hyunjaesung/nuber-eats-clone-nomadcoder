@@ -1797,8 +1797,9 @@ export const client = new ApolloClient({
 
 ### 사용
 
-- https://www.apollographql.com/docs/react/data/subscriptions/#executing-a-subscription
-- 훅을 이용한 방법
+- useSubscription
+
+  - https://www.apollographql.com/docs/react/data/subscriptions/#executing-a-subscription
 
   ```
   const FULL_ORDER_FRAGMENT = gql`
@@ -1838,10 +1839,71 @@ export const client = new ApolloClient({
           id: +params.id,
         },
       },
-    });
+    }); // 상태 변화하면 data 온다
 
     return (
       <div className='mt-32 container flex justify-center'>
         <Helmet>
           <title>Order #{params.id} | N
+  ```
+
+- subscribeToMore
+
+  - useQuery의 데이터와 useSubscription의 데이터가 결국 같은 목적을 가져와서 데이터를 보여주기 때문에 같은 state로 엮어서 써도 되긴하지만 더 쉽게 해줌
+
+  ```
+  const { data, subscribeToMore } = useQuery<getOrder, getOrderVariables>(
+      GET_ORDER,
+      {
+        variables: {
+          input: {
+            id: +params.id,
+          },
+        },
+      }
+    );
+
+  const { data: subData } = useSubscription<
+    orderUpdates,
+    orderUpdatesVariables
+  >(ORDER_SUBSCRIPTION, {
+    variables: {
+      input: {
+        id: +params.id,
+      },
+    },
+  });
+
+  useEffect(() => {
+    if (data?.getOrder.ok) {
+      subscribeToMore({
+        document: ORDER_SUBSCRIPTION, // 쿼리문
+        variables: { // subscription 인풋
+          input: {
+            id: +params.id,
+          },
+        },
+        updateQuery: (
+          prev,
+          {
+            subscriptionData: { data },
+          }: { subscriptionData: { data: orderUpdates } }
+        ) => {
+          if (!data) return prev;
+          return {
+            // 같은 구조로 return 필요
+            getOrder: {
+              ...prev.getOrder,
+              order: {
+                ...data.orderUpdates,
+              },
+            },
+          };
+        },
+        // 이전의 query data와 새로운 subscription data가 필요
+      });
+    }
+  }, [data]);
+
+
   ```

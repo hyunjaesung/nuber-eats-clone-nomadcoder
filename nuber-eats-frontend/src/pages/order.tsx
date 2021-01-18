@@ -1,5 +1,5 @@
 import { gql, useQuery, useSubscription } from "@apollo/client";
-import React from "react";
+import React, { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { useParams } from "react-router-dom";
 import { FULL_ORDER_FRAGMENT } from "../fragment";
@@ -37,14 +37,16 @@ interface IParams {
 
 export const Order = () => {
   const params = useParams<IParams>();
-  const { data } = useQuery<getOrder, getOrderVariables>(GET_ORDER, {
-    variables: {
-      input: {
-        id: +params.id,
+  const { data, subscribeToMore } = useQuery<getOrder, getOrderVariables>(
+    GET_ORDER,
+    {
+      variables: {
+        input: {
+          id: +params.id,
+        },
       },
-    },
-  });
-
+    }
+  );
   const { data: subData } = useSubscription<
     orderUpdates,
     orderUpdatesVariables
@@ -55,7 +57,37 @@ export const Order = () => {
       },
     },
   });
-  console.log(subData);
+
+  useEffect(() => {
+    if (data?.getOrder.ok) {
+      subscribeToMore({
+        document: ORDER_SUBSCRIPTION,
+        variables: {
+          input: {
+            id: +params.id,
+          },
+        },
+        updateQuery: (
+          prev,
+          {
+            subscriptionData: { data },
+          }: { subscriptionData: { data: orderUpdates } }
+        ) => {
+          if (!data) return prev;
+          return {
+            // 같은 구조로 return 필요
+            getOrder: {
+              ...prev.getOrder,
+              order: {
+                ...data.orderUpdates,
+              },
+            },
+          };
+        },
+        // 이전의 query data와 새로운 subscription data가 필요
+      });
+    }
+  }, [data]);
 
   return (
     <div className='mt-32 container flex justify-center'>
