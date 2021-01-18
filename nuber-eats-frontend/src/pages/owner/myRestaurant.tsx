@@ -1,4 +1,4 @@
-import { gql, useQuery } from "@apollo/client";
+import { gql, useMutation, useQuery } from "@apollo/client";
 import {
   VictoryAxis,
   VictoryChart,
@@ -21,6 +21,11 @@ import {
   myRestaurant,
   myRestaurantVariables,
 } from "../../__generated__/myRestaurant";
+import { useMe } from "../../hooks/useMe";
+import {
+  createPayment,
+  createPaymentVariables,
+} from "../../__generated__/createPayment";
 
 const MY_RESTAURANT_QUERY = gql`
   query myRestaurant($input: MyRestaurantInput!) {
@@ -69,13 +74,50 @@ export const MyRestaurant = () => {
     }
   );
 
+  const onCompleted = (data: createPayment) => {
+    if (data.createPayment.ok) {
+      alert("Your restaurant is being promoted!");
+    }
+  };
+  const [createPaymentMutation, { loading }] = useMutation<
+    createPayment,
+    createPaymentVariables
+  >(CREATE_PAYMENT_MUTATION, {
+    onCompleted,
+  });
+
+  const { data: userData } = useMe();
+  const triggerPaddle = () => {
+    if (userData?.me.email) {
+      // @ts-ignore
+      window.Paddle.Setup({ vendor: 666 });
+      // @ts-ignore
+      window.Paddle.Checkout.open({
+        product: 666,
+        email: userData.me.email,
+        successCallback: (data: any) => {
+          createPaymentMutation({
+            variables: {
+              input: {
+                transactionId: data.checkout.id,
+                restaurantId: +id,
+              },
+            },
+          });
+        },
+      });
+    }
+  };
+
   return (
     <div>
       <Helmet>
         <title>
           {data?.myRestaurant.restaurant?.name || "Loading..."} | Nuber Eats
         </title>
+        <script src='https://cdn.paddle.com/paddle/paddle.js'></script>
       </Helmet>
+      <div className='checkout-container'></div>
       <div
         className='  bg-gray-700  py-28 bg-center bg-cover'
         style={{
@@ -90,16 +132,19 @@ export const MyRestaurant = () => {
           className=' mr-8 text-white bg-gray-800 py-3 px-10'>
           Add Dish &rarr;
         </Link>
-        <Link to={``} className=' text-white bg-lime-700 py-3 px-10'>
+        <span
+          onClick={triggerPaddle}
+          className=' cursor-pointer text-white bg-lime-700 py-3 px-10'>
           Buy Promotion &rarr;
-        </Link>
+        </span>
         <div className='mt-10'>
           {data?.myRestaurant.restaurant?.menu.length === 0 ? (
             <h4 className='text-xl mb-5'>Please upload a dish!</h4>
           ) : (
             <div className='grid mt-16 md:grid-cols-3 gap-x-5 gap-y-10'>
-              {data?.myRestaurant.restaurant?.menu.map((dish) => (
+              {data?.myRestaurant.restaurant?.menu.map((dish, index) => (
                 <Dish
+                  key={index}
                   name={dish.name}
                   description={dish.description}
                   price={dish.price}
