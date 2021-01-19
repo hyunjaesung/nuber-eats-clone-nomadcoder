@@ -51,6 +51,43 @@ export const Dashboard = () => {
     setMap(map);
     // setMaps(maps);
   };
+
+  const onGetRouteClick = () => {
+    if (map) {
+      const directionsService = new google.maps.DirectionsService();
+      const directionsRenderer = new google.maps.DirectionsRenderer({
+        polylineOptions: {
+          // 경로 표시선 모양 변경가능
+          strokeColor: "#000",
+          strokeOpacity: 1,
+          strokeWeight: 58,
+        },
+      });
+
+      directionsRenderer.setMap(map);
+
+      directionsService.route(
+        {
+          origin: {
+            // 시작
+            location: new google.maps.LatLng(driverLocs.lat, driverLocs.lng),
+          },
+          destination: {
+            // 목적지
+            location: new google.maps.LatLng(
+              driverLocs.lat + 0.05,
+              driverLocs.lng + 0.05
+            ),
+          },
+          travelMode: google.maps.TravelMode.TRANSIT,
+        },
+        (result, status) => {
+          directionsRenderer.setDirections(result);
+        }
+      );
+    }
+  };
+
   return (
     <div>
       <div
@@ -65,10 +102,11 @@ export const Dashboard = () => {
           bootstrapURLKeys={{
             key: "AIzaSyAqYbp6ubZYl34Q4N5iIWtI7UyxlYOBtIw",
           }}>
-          <Driver lat={driverLocs.lat} lng={driverLocs.lng} />
+          {/* <Driver lat={driverLocs.lat} lng={driverLocs.lng} /> */}
           {/* 크롬 sensors옵션가면 location 변경해서 위치 변하는거 확인가능 */}
         </GoogleMapReact>
       </div>
+      <button onClick={onGetRouteClick}>Get route</button>
     </div>
   );
 };

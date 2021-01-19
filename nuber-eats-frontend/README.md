@@ -2030,3 +2030,43 @@ export const Dashboard = () => {
   );
 };
 ```
+
+### 구글 맵에 경로 표시하기
+
+```
+const onGetRouteClick = () => {
+    if (map) {
+      const directionsService = new google.maps.DirectionsService();
+      const directionsRenderer = new google.maps.DirectionsRenderer({
+        polylineOptions: {
+          // 경로 표시선 모양 변경가능
+          strokeColor: "#000",
+          strokeOpacity: 1,
+          strokeWeight: 58,
+        },
+      });
+
+      directionsRenderer.setMap(map);
+
+      directionsService.route(
+        {
+          origin: {
+            // 시작
+            location: new google.maps.LatLng(driverLocs.lat, driverLocs.lng),
+          },
+          destination: {
+            // 목적지
+            location: new google.maps.LatLng(
+              driverLocs.lat + 0.05,
+              driverLocs.lng + 0.05
+            ),
+          },
+          travelMode: google.maps.TravelMode.TRANSIT,
+        },
+        (result, status) => {
+          directionsRenderer.setDirections(result);
+        }
+      );
+    }
+  };
+```
