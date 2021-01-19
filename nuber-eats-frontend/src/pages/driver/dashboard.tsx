@@ -1,5 +1,28 @@
 import React, { useEffect, useState } from "react";
 import GoogleMapReact from "google-map-react";
+import { gql, useMutation, useSubscription } from "@apollo/client";
+import { FULL_ORDER_FRAGMENT } from "../../fragment";
+import { coockedOrders } from "../../__generated__/coockedOrders";
+import { Link, useHistory } from "react-router-dom";
+import { takeOrder, takeOrderVariables } from "../../__generated__/takeOrder";
+
+const COOCKED_ORDERS_SUBSCRIPTION = gql`
+  subscription coockedOrders {
+    cookedOrders {
+      ...FullOrderParts
+    }
+  }
+  ${FULL_ORDER_FRAGMENT}
+`;
+
+const TAKE_ORDER_MUTATION = gql`
+  mutation takeOrder($input: TakeOrderInput!) {
+    takeOrder(input: $input) {
+      ok
+      error
+    }
+  }
+`;
 
 interface ILocs {
   lat: number;
@@ -52,7 +75,7 @@ export const Dashboard = () => {
     // setMaps(maps);
   };
 
-  const onGetRouteClick = () => {
+  const makeRoute = () => {
     if (map) {
       const directionsService = new google.maps.DirectionsService();
       const directionsRenderer = new google.maps.DirectionsRenderer({
@@ -60,7 +83,7 @@ export const Dashboard = () => {
           // 경로 표시선 모양 변경가능
           strokeColor: "#000",
           strokeOpacity: 1,
-          strokeWeight: 58,
+          strokeWeight: 5,
         },
       });
 
@@ -88,6 +111,38 @@ export const Dashboard = () => {
     }
   };
 
+  const { data: coockedOrdersData } = useSubscription<coockedOrders>(
+    COOCKED_ORDERS_SUBSCRIPTION
+  );
+
+  useEffect(() => {
+    if (coockedOrdersData?.cookedOrders.id) {
+      makeRoute();
+    }
+  }, [coockedOrdersData]);
+
+  const history = useHistory();
+  const onCompleted = (data: takeOrder) => {
+    if (data.takeOrder.ok) {
+      history.push(`/orders/${coockedOrdersData?.cookedOrders.id}`);
+    }
+  };
+  const [takeOrderMutation] = useMutation<takeOrder, takeOrderVariables>(
+    TAKE_ORDER_MUTATION,
+    {
+      onCompleted,
+    }
+  );
+  const triggerMutation = (orderId: number) => {
+    takeOrderMutation({
+      variables: {
+        input: {
+          id: orderId,
+        },
+      },
+    });
+  };
+
   return (
     <div>
       <div
@@ -106,7 +161,30 @@ export const Dashboard = () => {
           {/* 크롬 sensors옵션가면 location 변경해서 위치 변하는거 확인가능 */}
         </GoogleMapReact>
       </div>
-      <button onClick={onGetRouteClick}>Get route</button>
+      <div className=' max-w-screen-sm mx-auto bg-white relative -top-10 shadow-lg py-8 px-5'>
+        {coockedOrdersData?.cookedOrders.restaurant ? (
+          <>
+            <h1 className='text-center  text-3xl font-medium'>
+              New Coocked Order
+            </h1>
+            <h1 className='text-center my-3 text-2xl font-medium'>
+              Pick it up soon @{" "}
+              {coockedOrdersData?.cookedOrders.restaurant?.name}
+            </h1>
+            <button
+              onClick={() =>
+                triggerMutation(coockedOrdersData?.cookedOrders.id)
+              }
+              className='btn w-full  block  text-center mt-5'>
+              Accept Challenge &rarr;
+            </button>
+          </>
+        ) : (
+          <h1 className='text-center  text-3xl font-medium'>
+            No orders yet...
+          </h1>
+        )}
+      </div>
     </div>
   );
 };
